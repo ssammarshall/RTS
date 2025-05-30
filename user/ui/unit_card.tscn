@@ -1,0 +1,39 @@
+[gd_scene load_steps=4 format=3 uid="uid://cmvjcr2lua8ob"]
+
+[ext_resource type="Script" uid="uid://c0w6bliagyppk" path="res://user/ui/unit_card.gd" id="1_edsqo"]
+[ext_resource type="Texture2D" uid="uid://bi2qswwoq3r5m" path="res://user/ui/unit_icon_selected.png" id="2_hiai4"]
+[ext_resource type="Script" uid="uid://dwnffthedlp8y" path="res://user/ui/unit_card_button.gd" id="3_4gdtk"]
+
+[node name="unit_card" type="MarginContainer" node_paths=PackedStringArray("button", "selected_highlight")]
+offset_right = 59.0
+offset_bottom = 78.0
+theme_override_constants/margin_left = 1
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 1
+script = ExtResource("1_edsqo")
+button = NodePath("VBoxContainer/Button")
+selected_highlight = NodePath("SelectedHighlight")
+
+[node name="SelectedHighlight" type="TextureRect" parent="."]
+layout_mode = 2
+size_flags_vertical = 0
+texture = ExtResource("2_hiai4")
+expand_mode = 5
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+size_flags_stretch_ratio = 7.67
+alignment = 1
+
+[node name="Control" type="Control" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="Button" type="Button" parent="VBoxContainer"]
+show_behind_parent = true
+custom_minimum_size = Vector2(57, 57)
+layout_mode = 2
+size_flags_vertical = 8
+focus_mode = 0
+icon_alignment = 1
+expand_icon = true
+script = ExtResource("3_4gdtk")

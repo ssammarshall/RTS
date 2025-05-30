@@ -1,0 +1,6 @@
+Orcs are "mined" and pulled from the ground on certain locations on the map called pits.
+Pits are marked be decaying vegetation and a dark, thick mud that forces the terrain into a shallow hole.
+
+First time finding a pit:
+"The air becomes increasingly thick. The stinking mud shifts and bubbles. Corrupted earth slowly sinks into itself,
+bleeding the surrounding area of all life. This is where an empire will be forged."

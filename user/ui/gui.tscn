@@ -1,0 +1,197 @@
+[gd_scene load_steps=7 format=3 uid="uid://b6kfwo7ku62xd"]
+
+[ext_resource type="Script" uid="uid://33qdat361uqo" path="res://user/ui/gui.gd" id="1_eg5nj"]
+[ext_resource type="Script" uid="uid://cixp2rbl423nn" path="res://user/ui/available_units_container.gd" id="2_c73ca"]
+[ext_resource type="Script" uid="uid://x8gygs6dyou6" path="res://user/ui/select_info_container.gd" id="3_xpb4v"]
+[ext_resource type="Script" uid="uid://dr83pi8gkanvs" path="res://user/ui/building_panel.gd" id="4_p4rjp"]
+
+[sub_resource type="FontFile" id="FontFile_3tc0y"]
+subpixel_positioning = 0
+msdf_pixel_range = 14
+msdf_size = 128
+cache/0/16/0/ascent = 0.0
+cache/0/16/0/descent = 0.0
+cache/0/16/0/underline_position = 0.0
+cache/0/16/0/underline_thickness = 0.0
+cache/0/16/0/scale = 1.0
+cache/0/15/0/ascent = 0.0
+cache/0/15/0/descent = 0.0
+cache/0/15/0/underline_position = 0.0
+cache/0/15/0/underline_thickness = 0.0
+cache/0/15/0/scale = 1.0
+cache/0/14/0/ascent = 0.0
+cache/0/14/0/descent = 0.0
+cache/0/14/0/underline_position = 0.0
+cache/0/14/0/underline_thickness = 0.0
+cache/0/14/0/scale = 1.0
+cache/0/13/0/ascent = 0.0
+cache/0/13/0/descent = 0.0
+cache/0/13/0/underline_position = 0.0
+cache/0/13/0/underline_thickness = 0.0
+cache/0/13/0/scale = 1.0
+cache/0/12/0/ascent = 0.0
+cache/0/12/0/descent = 0.0
+cache/0/12/0/underline_position = 0.0
+cache/0/12/0/underline_thickness = 0.0
+cache/0/12/0/scale = 1.0
+cache/0/17/0/ascent = 0.0
+cache/0/17/0/descent = 0.0
+cache/0/17/0/underline_position = 0.0
+cache/0/17/0/underline_thickness = 0.0
+cache/0/17/0/scale = 1.0
+cache/0/18/0/ascent = 0.0
+cache/0/18/0/descent = 0.0
+cache/0/18/0/underline_position = 0.0
+cache/0/18/0/underline_thickness = 0.0
+cache/0/18/0/scale = 1.0
+cache/0/19/0/ascent = 0.0
+cache/0/19/0/descent = 0.0
+cache/0/19/0/underline_position = 0.0
+cache/0/19/0/underline_thickness = 0.0
+cache/0/19/0/scale = 1.0
+cache/0/20/0/ascent = 0.0
+cache/0/20/0/descent = 0.0
+cache/0/20/0/underline_position = 0.0
+cache/0/20/0/underline_thickness = 0.0
+cache/0/20/0/scale = 1.0
+cache/0/21/0/ascent = 0.0
+cache/0/21/0/descent = 0.0
+cache/0/21/0/underline_position = 0.0
+cache/0/21/0/underline_thickness = 0.0
+cache/0/21/0/scale = 1.0
+cache/0/22/0/ascent = 0.0
+cache/0/22/0/descent = 0.0
+cache/0/22/0/underline_position = 0.0
+cache/0/22/0/underline_thickness = 0.0
+cache/0/22/0/scale = 1.0
+
+[sub_resource type="LabelSettings" id="LabelSettings_tlfhx"]
+line_spacing = 0.0
+font = SubResource("FontFile_3tc0y")
+font_size = 22
+font_color = Color(0.783523, 0.783523, 0.783523, 1)
+outline_size = 1
+outline_color = Color(0, 0, 0, 1)
+
+[node name="GUI" type="CanvasLayer" node_paths=PackedStringArray("available_units", "select_info", "building_panel")]
+script = ExtResource("1_eg5nj")
+available_units = NodePath("AvailableUnits/MarginContainer/available_units")
+select_info = NodePath("SelectInfo")
+building_panel = NodePath("BuildingsPanel")
+
+[node name="FPSLabel" type="Label" parent="."]
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="AvailableUnits" type="PanelContainer" parent="."]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -39.5
+offset_top = -81.0
+offset_right = 39.5
+offset_bottom = 9.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="MarginContainer" type="MarginContainer" parent="AvailableUnits"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="available_units" type="HBoxContainer" parent="AvailableUnits/MarginContainer" node_paths=PackedStringArray("background")]
+custom_minimum_size = Vector2(59, 0)
+layout_mode = 2
+alignment = 1
+script = ExtResource("2_c73ca")
+background = NodePath("../../../AvailableUnitsBackground/MarginContainer/available_units_background")
+
+[node name="AvailableUnitsBackground" type="PanelContainer" parent="."]
+visible = false
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -39.5
+offset_top = -81.0
+offset_right = 39.5
+offset_bottom = 9.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="MarginContainer" type="MarginContainer" parent="AvailableUnitsBackground"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="available_units_background" type="HBoxContainer" parent="AvailableUnitsBackground/MarginContainer"]
+custom_minimum_size = Vector2(59, 0)
+layout_mode = 2
+alignment = 1
+
+[node name="SelectInfo" type="PanelContainer" parent="." node_paths=PackedStringArray("label")]
+custom_minimum_size = Vector2(200, 0)
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -100.0
+offset_top = -204.0
+offset_bottom = -164.0
+grow_horizontal = 0
+grow_vertical = 2
+size_flags_horizontal = 10
+size_flags_vertical = 3
+script = ExtResource("3_xpb4v")
+label = NodePath("MarginContainer/VBoxContainer/Label")
+
+[node name="MarginContainer" type="MarginContainer" parent="SelectInfo"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="VBoxContainer" type="VBoxContainer" parent="SelectInfo/MarginContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="SelectInfo/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 6
+text = "text: text
+text: text"
+label_settings = SubResource("LabelSettings_tlfhx")
+
+[node name="BuildingsPanel" type="PanelContainer" parent="." node_paths=PackedStringArray("button")]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -146.0
+offset_right = 357.0
+grow_vertical = 0
+script = ExtResource("4_p4rjp")
+button = NodePath("MarginContainer/HBoxContainer/Button")
+
+[node name="MarginContainer" type="MarginContainer" parent="BuildingsPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="HBoxContainer" type="HBoxContainer" parent="BuildingsPanel/MarginContainer"]
+layout_mode = 2
+size_flags_vertical = 0
+
+[node name="Button" type="Button" parent="BuildingsPanel/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = "Mine
+"

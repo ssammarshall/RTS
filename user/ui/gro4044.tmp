@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://bk2ukam6im5of"]
+
+[ext_resource type="Script" path="res://user/ui/group_card.gd" id="1_becog"]
+
+[node name="group_card" type="HBoxContainer"]
+custom_minimum_size = Vector2(59, 80)
+offset_right = 59.0
+offset_bottom = 80.0
+script = ExtResource("1_becog")

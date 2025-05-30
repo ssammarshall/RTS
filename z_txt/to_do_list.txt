@@ -1,0 +1,22 @@
+To Do List version 0.5:
+
+Swap modes: between RTS style and third person control.
+RTS: add camera follow unit with current distance offset (and look at unit with slight offset/off center angle).
+Zoomed camera follow unit with button press (double click?) third person POV. If camera above certain distance to unit when switching camera mode, add sound effect of wind passing by.
+Third person control: basic movement commands, automated resource collection toggle, interact with buildings, combat.
+
+A* pathfinding algorithm; replace nav agent?
+Current navigation for units sucks.
+
+Chief unit.
+Tribe leader, has additional actions and authorities.
+Will always be assigned as leader within group formation.
+Able to give orders when player controlled.
+Visually different; larger health pool and resource collection speed.
+
+Group formations.
+After unit selection: assign leader of selected group. If chief unit is selected then automatically assign chief as leader, otherwise create imaginary leader.
+Right click to set formation start (top left corner of formation), find leader pos of formation based of size/num of units and save global transform.
+After right click release: based of number of units in formation, assign an offset vector from the leader position to each unit in the formation.
+Leader moves to assigned position and all other units try to get to their respective offsets and match velocity.
+Getting into the correct offset position is priority 1. After it has been reached, focus on matching velocity of leader. If distance from offset is too great, ignore leader velocity and go for offset.
