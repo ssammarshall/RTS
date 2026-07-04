@@ -10,10 +10,10 @@ enum MODE {
 	UNIT_FOLLOW,
 	UNIT_CONTROL
 }
-var mode: MODE = MODE.RTS:
+var current_mode: MODE = MODE.RTS:
 	set(new_mode):
-		mode = new_mode
-		match mode:
+		current_mode = new_mode
+		match current_mode:
 			MODE.RTS:
 				spring_arm.spring_length = 0
 			MODE.UNIT_FOLLOW:
@@ -49,7 +49,7 @@ func _ready() -> void:
 
 # Called by User to update Camera Rig.
 func _physics_process(delta: float) -> void:
-	match mode:
+	match current_mode:
 		MODE.RTS:
 			rts_camera.physics_update(self, delta)
 		
@@ -58,4 +58,4 @@ func _physics_process(delta: float) -> void:
 			#user.global_position = unit.global_position
 
 func set_mode(_mode: MODE) -> void:
-	mode = _mode
+	current_mode = _mode
