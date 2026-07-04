@@ -50,7 +50,7 @@ func display_building_preview(display: bool) -> void:
 		preview_mesh.hide()
 
 func set_building_collision_layer(layer: int, value: bool) -> void:
-	if layer < 0 or layer > 32: return
+	if layer == 0 or layer > 32: return
 	
 	set_collision_layer_value(layer, value)
 
