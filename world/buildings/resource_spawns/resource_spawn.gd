@@ -1,6 +1,8 @@
 class_name ResourceSpawn extends Building
 
 func _ready() -> void:
+	super._ready()
+	
 	construction_complete = true # ResourceSpawns do not need to be constructed.
 
 func extract() -> int:
