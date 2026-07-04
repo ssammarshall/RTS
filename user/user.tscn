@@ -1,25 +1,25 @@
-[gd_scene load_steps=5 format=3 uid="uid://c255mfpdlax5t"]
+[gd_scene format=3 uid="uid://c255mfpdlax5t"]
 
 [ext_resource type="Script" uid="uid://bl21rh7v4vx5q" path="res://user/user.gd" id="1_8pvcq"]
 [ext_resource type="PackedScene" uid="uid://o6p7gvbb785" path="res://user/camera/camera_rig.tscn" id="2_bgwr0"]
 [ext_resource type="Texture2D" uid="uid://35mwu1xursa0" path="res://user/ui/dragbox_blue.png" id="3_tmcyx"]
 [ext_resource type="PackedScene" uid="uid://b6kfwo7ku62xd" path="res://user/ui/gui.tscn" id="4_42cji"]
 
-[node name="User" type="Node3D"]
+[node name="User" type="Node3D" unique_id=1715754994]
 script = ExtResource("1_8pvcq")
 mouse_sens = 1.5
 
-[node name="CameraRig" parent="." node_paths=PackedStringArray("user") instance=ExtResource("2_bgwr0")]
+[node name="CameraRig" parent="." unique_id=637853748 node_paths=PackedStringArray("user") instance=ExtResource("2_bgwr0")]
 transform = Transform3D(1, 0, 0, 0, 0.866026, 0.5, 0, -0.5, 0.866026, 0, 0, 0)
 user = NodePath("..")
 
-[node name="Control" type="Control" parent="."]
+[node name="Control" type="Control" parent="." unique_id=199790151]
 layout_mode = 3
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
 
-[node name="Dragbox" type="NinePatchRect" parent="Control"]
+[node name="Dragbox" type="NinePatchRect" parent="Control" unique_id=1509106535]
 layout_mode = 0
 offset_right = 1151.0
 offset_bottom = 642.0
@@ -29,4 +29,4 @@ patch_margin_top = 4
 patch_margin_right = 4
 patch_margin_bottom = 4
 
-[node name="GUI" parent="." instance=ExtResource("4_42cji")]
+[node name="GUI" parent="." unique_id=1070932899 instance=ExtResource("4_42cji")]

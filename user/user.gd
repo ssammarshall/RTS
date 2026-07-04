@@ -20,9 +20,9 @@ var current_mode: MODE = MODE.RTS:
 		current_mode = new_mode
 		match current_mode:
 			MODE.RTS:
-				camera_rig.current_mode = CameraRig.MODE.RTS
+				camera_rig.set_mode(CameraRig.MODE.RTS)
 			MODE.UNIT_CONTROL:
-				camera_rig.current_mode = CameraRig.MODE.UNIT_CONTROL
+				camera_rig.set_mode(CameraRig.MODE.UNIT_CONTROL)
 
 # Modules.
 var rect := Rect2() # Used by multiple modules.
