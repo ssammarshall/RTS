@@ -3,7 +3,7 @@ class_name CameraRig extends Node3D
 # Nodes.
 @export var user: User
 @onready var spring_arm: SpringArm3D = $SpringArm3D
-@onready var camera = $SpringArm3D/Camera3D
+@onready var camera: Camera3D = $SpringArm3D/Camera3D
 
 enum MODE {
 	RTS,

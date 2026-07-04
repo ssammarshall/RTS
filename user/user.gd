@@ -1,9 +1,9 @@
 class_name User extends Node3D
 
 # Nodes.
-@onready var gui = $GUI
-@onready var dragbox = $Control/Dragbox
-@onready var camera_rig = $CameraRig
+@onready var gui: GUI = $GUI
+@onready var dragbox: NinePatchRect = $Control/Dragbox
+@onready var camera_rig: CameraRig = $CameraRig
 
 enum MODE {
 	RTS,
