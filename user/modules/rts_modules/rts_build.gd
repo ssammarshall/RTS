@@ -37,7 +37,6 @@ func update(user: User, _delta: float) -> void:
 	
 	if can_rotate_building:
 		rotate_building(user)
-		print("rotate")
 		return
 	
 	var pos: Vector3 = Util.mouse_raycast_3d_position(user.camera_rig.camera, user.camera_rig.mouse_current_position, 0b10000)
