@@ -4,6 +4,7 @@ var building: Building
 var overlapping_bodies: Array[Node3D]
 var can_place_building := false
 var can_rotate_building := false
+var was_placement_cancelled := false
 
 func _init() -> void:
 	SignalBus.start_building_placement.connect(Callable(_on_start_building_placement))
@@ -36,6 +37,7 @@ func update(user: User, _delta: float) -> void:
 	
 	if can_rotate_building:
 		rotate_building(user)
+		print("rotate")
 		return
 	
 	var pos: Vector3 = Util.mouse_raycast_3d_position(user.camera_rig.camera, user.camera_rig.mouse_current_position, 0b10000)
@@ -53,6 +55,10 @@ func _on_area_entered(body: Node3D) -> void:
 func _on_area_exited(body: Node3D) -> void:
 	if overlapping_bodies.has(body):
 		overlapping_bodies.erase(body)
+
+func cancel_building_placement() -> void:
+	was_placement_cancelled = true
+	can_rotate_building = false
 
 func check_building_placement(user: User) -> bool:
 	if not building: return false
@@ -99,7 +105,12 @@ func check_building_placement(user: User) -> bool:
 
 func place_building(user: User) -> bool:
 	if not building: return false
-	if not can_place_building or not can_rotate_building: return false
+	if not can_place_building:
+		can_rotate_building = false
+		return false
+	if was_placement_cancelled:
+		was_placement_cancelled = false
+		return false
 	
 	building.display_building_preview(true) # Keep Building preview active.
 	building.set_building_collision_layer(4, true) # Allow Units to pass thru Building but keep Building selectable by User.
@@ -112,6 +123,8 @@ func place_building(user: User) -> bool:
 		user.get_tree().get_root().add_child(building)
 	else:
 		building = null
+	
+	can_rotate_building = false # Prevent next building from automatically starting rotation.
 	
 	return true
 

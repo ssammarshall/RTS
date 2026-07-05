@@ -236,7 +236,6 @@ func input_event_mouse_button(event: InputEventMouseButton) -> void:
 				if rts_build.place_building(user) and not user.hold_group:
 					mode = MODE.DEFAULT
 					return
-				rts_build.can_rotate_building = false
 				rts_camera.camera_can_auto_pan = true
 			MODE.SELECT:
 				mode = MODE.DEFAULT
@@ -265,7 +264,7 @@ func input_event_mouse_button(event: InputEventMouseButton) -> void:
 			MODE.SELECT:
 				mode = MODE.DEFAULT
 			MODE.BUILD:
-				rts_build.can_rotate_building = false
+				rts_build.cancel_building_placement()
 			MODE.ORDER: # It never reaches this line?
 				pass
 		return
