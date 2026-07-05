@@ -7,8 +7,8 @@ extends Node
 const MINE: PackedScene = preload("res://world/buildings/production/mine.tscn")
 
 # UI.
-const GROUP_CARD: PackedScene = preload("res://user/ui/group_card.tscn")
-const UNIT_CARD: PackedScene = preload("res://user/ui/unit_card.tscn")
+const GROUP_CARD: PackedScene = preload("uid://bk2ukam6im5of")
+const UNIT_CARD: PackedScene = preload("uid://cmvjcr2lua8ob")
 
 # Shaders.
 const BUILDING_PREVIEW: Shader = preload("res://world/buildings/building_preview.gdshader")

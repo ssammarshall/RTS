@@ -1,14 +1,23 @@
-[gd_scene load_steps=7 format=3 uid="uid://b6kfwo7ku62xd"]
+[gd_scene format=3 uid="uid://b6kfwo7ku62xd"]
 
-[ext_resource type="Script" uid="uid://33qdat361uqo" path="res://user/ui/gui.gd" id="1_eg5nj"]
-[ext_resource type="Script" uid="uid://cixp2rbl423nn" path="res://user/ui/available_units_container.gd" id="2_c73ca"]
-[ext_resource type="Script" uid="uid://x8gygs6dyou6" path="res://user/ui/select_info_container.gd" id="3_xpb4v"]
-[ext_resource type="Script" uid="uid://dr83pi8gkanvs" path="res://user/ui/building_panel.gd" id="4_p4rjp"]
+[ext_resource type="Script" uid="uid://33qdat361uqo" path="res://ui/rts/gui.gd" id="1_eg5nj"]
+[ext_resource type="Script" uid="uid://cixp2rbl423nn" path="res://ui/rts/available_units_container.gd" id="2_c73ca"]
+[ext_resource type="Script" uid="uid://x8gygs6dyou6" path="res://ui/rts/select_info_container.gd" id="3_xpb4v"]
+[ext_resource type="Script" uid="uid://dr83pi8gkanvs" path="res://ui/rts/building_panel.gd" id="4_p4rjp"]
 
 [sub_resource type="FontFile" id="FontFile_3tc0y"]
 subpixel_positioning = 0
 msdf_pixel_range = 14
 msdf_size = 128
+cache/0/variation_coordinates = {}
+cache/0/face_index = 0
+cache/0/embolden = 0.0
+cache/0/transform = Transform2D(1, 0, 0, 1, 0, 0)
+cache/0/spacing_top = 0
+cache/0/spacing_bottom = 0
+cache/0/spacing_space = 0
+cache/0/spacing_glyph = 0
+cache/0/baseline_offset = 0.0
 cache/0/16/0/ascent = 0.0
 cache/0/16/0/descent = 0.0
 cache/0/16/0/underline_position = 0.0
@@ -73,17 +82,17 @@ font_color = Color(0.783523, 0.783523, 0.783523, 1)
 outline_size = 1
 outline_color = Color(0, 0, 0, 1)
 
-[node name="GUI" type="CanvasLayer" node_paths=PackedStringArray("available_units", "select_info", "building_panel")]
+[node name="GUI" type="CanvasLayer" unique_id=350942766 node_paths=PackedStringArray("available_units", "select_info", "building_panel")]
 script = ExtResource("1_eg5nj")
 available_units = NodePath("AvailableUnits/MarginContainer/available_units")
 select_info = NodePath("SelectInfo")
 building_panel = NodePath("BuildingsPanel")
 
-[node name="FPSLabel" type="Label" parent="."]
+[node name="FPSLabel" type="Label" parent="." unique_id=1346069019]
 offset_right = 40.0
 offset_bottom = 23.0
 
-[node name="AvailableUnits" type="PanelContainer" parent="."]
+[node name="AvailableUnits" type="PanelContainer" parent="." unique_id=1360940973]
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
@@ -96,21 +105,21 @@ offset_bottom = 9.0
 grow_horizontal = 2
 grow_vertical = 0
 
-[node name="MarginContainer" type="MarginContainer" parent="AvailableUnits"]
+[node name="MarginContainer" type="MarginContainer" parent="AvailableUnits" unique_id=2023132597]
 layout_mode = 2
 theme_override_constants/margin_left = 5
 theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 5
 theme_override_constants/margin_bottom = 5
 
-[node name="available_units" type="HBoxContainer" parent="AvailableUnits/MarginContainer" node_paths=PackedStringArray("background")]
+[node name="available_units" type="HBoxContainer" parent="AvailableUnits/MarginContainer" unique_id=722270206 node_paths=PackedStringArray("background")]
 custom_minimum_size = Vector2(59, 0)
 layout_mode = 2
 alignment = 1
 script = ExtResource("2_c73ca")
 background = NodePath("../../../AvailableUnitsBackground/MarginContainer/available_units_background")
 
-[node name="AvailableUnitsBackground" type="PanelContainer" parent="."]
+[node name="AvailableUnitsBackground" type="PanelContainer" parent="." unique_id=1810578816]
 visible = false
 anchors_preset = 7
 anchor_left = 0.5
@@ -124,19 +133,19 @@ offset_bottom = 9.0
 grow_horizontal = 2
 grow_vertical = 0
 
-[node name="MarginContainer" type="MarginContainer" parent="AvailableUnitsBackground"]
+[node name="MarginContainer" type="MarginContainer" parent="AvailableUnitsBackground" unique_id=417714300]
 layout_mode = 2
 theme_override_constants/margin_left = 5
 theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 5
 theme_override_constants/margin_bottom = 5
 
-[node name="available_units_background" type="HBoxContainer" parent="AvailableUnitsBackground/MarginContainer"]
+[node name="available_units_background" type="HBoxContainer" parent="AvailableUnitsBackground/MarginContainer" unique_id=2087888839]
 custom_minimum_size = Vector2(59, 0)
 layout_mode = 2
 alignment = 1
 
-[node name="SelectInfo" type="PanelContainer" parent="." node_paths=PackedStringArray("label")]
+[node name="SelectInfo" type="PanelContainer" parent="." unique_id=1431229493 node_paths=PackedStringArray("label")]
 custom_minimum_size = Vector2(200, 0)
 anchors_preset = 6
 anchor_left = 1.0
@@ -153,24 +162,24 @@ size_flags_vertical = 3
 script = ExtResource("3_xpb4v")
 label = NodePath("MarginContainer/VBoxContainer/Label")
 
-[node name="MarginContainer" type="MarginContainer" parent="SelectInfo"]
+[node name="MarginContainer" type="MarginContainer" parent="SelectInfo" unique_id=475972200]
 layout_mode = 2
 theme_override_constants/margin_left = 5
 theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 5
 theme_override_constants/margin_bottom = 5
 
-[node name="VBoxContainer" type="VBoxContainer" parent="SelectInfo/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="SelectInfo/MarginContainer" unique_id=593078395]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="SelectInfo/MarginContainer/VBoxContainer"]
+[node name="Label" type="Label" parent="SelectInfo/MarginContainer/VBoxContainer" unique_id=560789756]
 layout_mode = 2
 size_flags_vertical = 6
 text = "text: text
 text: text"
 label_settings = SubResource("LabelSettings_tlfhx")
 
-[node name="BuildingsPanel" type="PanelContainer" parent="." node_paths=PackedStringArray("button")]
+[node name="BuildingsPanel" type="PanelContainer" parent="." unique_id=1106928216 node_paths=PackedStringArray("button")]
 anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
@@ -180,18 +189,18 @@ grow_vertical = 0
 script = ExtResource("4_p4rjp")
 button = NodePath("MarginContainer/HBoxContainer/Button")
 
-[node name="MarginContainer" type="MarginContainer" parent="BuildingsPanel"]
+[node name="MarginContainer" type="MarginContainer" parent="BuildingsPanel" unique_id=448624565]
 layout_mode = 2
 theme_override_constants/margin_left = 5
 theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 5
 theme_override_constants/margin_bottom = 5
 
-[node name="HBoxContainer" type="HBoxContainer" parent="BuildingsPanel/MarginContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="BuildingsPanel/MarginContainer" unique_id=1188737176]
 layout_mode = 2
 size_flags_vertical = 0
 
-[node name="Button" type="Button" parent="BuildingsPanel/MarginContainer/HBoxContainer"]
+[node name="Button" type="Button" parent="BuildingsPanel/MarginContainer/HBoxContainer" unique_id=2084848249]
 layout_mode = 2
 text = "Mine
 "

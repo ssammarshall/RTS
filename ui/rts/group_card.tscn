@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://bk2ukam6im5of"]
+[gd_scene format=3 uid="uid://bk2ukam6im5of"]
 
-[ext_resource type="Script" uid="uid://c5pu4k2sh2flq" path="res://user/ui/group_card.gd" id="1_becog"]
+[ext_resource type="Script" uid="uid://c5pu4k2sh2flq" path="res://ui/rts/group_card.gd" id="1_becog"]
 
 [node name="group_card" type="PanelContainer" node_paths=PackedStringArray("label", "h_box_container")]
 custom_minimum_size = Vector2(59, 80)

@@ -22,7 +22,7 @@ func start_order(user: User) -> void:
 	for x in user.get_selected_group().size():
 		var decal := Decal.new()
 		decal.size = Vector3(0.7,2,0.7)
-		decal.texture_albedo = preload("res://units/selected_ring.png")
+		decal.texture_albedo = preload("uid://w1ixg5bhlopc")
 		unit_decals.append(decal)
 		base.add_child(decal)
 

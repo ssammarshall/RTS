@@ -1,8 +1,8 @@
-[gd_scene load_steps=4 format=3 uid="uid://cmvjcr2lua8ob"]
+[gd_scene format=3 uid="uid://cmvjcr2lua8ob"]
 
-[ext_resource type="Script" uid="uid://c0w6bliagyppk" path="res://user/ui/unit_card.gd" id="1_edsqo"]
-[ext_resource type="Texture2D" uid="uid://bi2qswwoq3r5m" path="res://user/ui/unit_icon_selected.png" id="2_hiai4"]
-[ext_resource type="Script" uid="uid://dwnffthedlp8y" path="res://user/ui/unit_card_button.gd" id="3_4gdtk"]
+[ext_resource type="Script" uid="uid://c0w6bliagyppk" path="res://ui/rts/unit_card.gd" id="1_edsqo"]
+[ext_resource type="Texture2D" uid="uid://bi2qswwoq3r5m" path="res://ui/rts/unit_icon_selected.png" id="2_hiai4"]
+[ext_resource type="Script" uid="uid://dwnffthedlp8y" path="res://ui/rts/unit_card_button.gd" id="3_4gdtk"]
 
 [node name="unit_card" type="MarginContainer" node_paths=PackedStringArray("button", "selected_highlight")]
 offset_right = 59.0

@@ -1,15 +1,14 @@
-[gd_scene load_steps=18 format=4 uid="uid://g4mdodnqw4f5"]
+[gd_scene format=4 uid="uid://g4mdodnqw4f5"]
 
 [ext_resource type="Script" uid="uid://bjnp42etvynyf" path="res://world/buildings/building.gd" id="1_68ri8"]
-[ext_resource type="Script" uid="uid://bnxy0ta2hvx1x" path="res://inventory/strategic_resource.gd" id="2_46xre"]
-[ext_resource type="PackedScene" uid="uid://ck1c7udo2b4hu" path="res://inventory/items/pickaxe.tscn" id="3_ogw2c"]
+[ext_resource type="Script" uid="uid://bnxy0ta2hvx1x" path="res://items/strategic_resource.gd" id="2_46xre"]
+[ext_resource type="PackedScene" uid="uid://ck1c7udo2b4hu" path="res://items/pickaxe.tscn" id="3_ogw2c"]
 [ext_resource type="Script" uid="uid://ba4xrxb1iruiy" path="res://selectable_object.gd" id="3_swa43"]
 [ext_resource type="Shader" uid="uid://okr7b764mwr0" path="res://world/buildings/building_preview.gdshader" id="4_ai1i3"]
 
 [sub_resource type="Resource" id="Resource_gtdjs"]
 script = ExtResource("2_46xre")
 type = 3
-amount = 0
 
 [sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_nhjhm"]
 points = PackedVector3Array(2.97661, 3, 4.97616, -2.97656, -1, -0.976161, -2.97656, -1, 4.97616, -2.97656, 3, -0.976161, 2.97661, -1, -0.976161, -2.97656, 3, 4.97616, 2.97661, -1, 4.97616, 2.97661, 3, -0.976161)
@@ -114,7 +113,7 @@ _surfaces = [{
 emission_enabled = true
 emission = Color(0.920995, 0.920995, 0.920995, 1)
 
-[node name="mine" type="StaticBody3D" node_paths=PackedStringArray("mesh", "preview_mesh", "collision_shape", "area", "area_collision_shape", "selectable_object")]
+[node name="mine" type="StaticBody3D" unique_id=2030766059 node_paths=PackedStringArray("mesh", "preview_mesh", "collision_shape", "area", "area_collision_shape", "selectable_object")]
 script = ExtResource("1_68ri8")
 title = "Stone Mine"
 resource = SubResource("Resource_gtdjs")
@@ -126,31 +125,31 @@ area = NodePath("Area3D")
 area_collision_shape = NodePath("Area3D/CollisionShape3D")
 selectable_object = NodePath("selectable object")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1189741053]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 shape = SubResource("ConvexPolygonShape3D_nhjhm")
 
-[node name="Area3D" type="Area3D" parent="."]
+[node name="Area3D" type="Area3D" parent="." unique_id=401621225]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.45591, 1.91392)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D" unique_id=1716329814]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.00678217, 0, 2.13508)
 shape = SubResource("BoxShape3D_pr4cy")
 
-[node name="mesh" type="Node3D" parent="."]
+[node name="mesh" type="Node3D" parent="." unique_id=297806167]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 
-[node name="building" type="MeshInstance3D" parent="mesh"]
+[node name="building" type="MeshInstance3D" parent="mesh" unique_id=1455666810]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 mesh = SubResource("ArrayMesh_sjgth")
 skeleton = NodePath("")
 
-[node name="ground" type="MeshInstance3D" parent="mesh"]
+[node name="ground" type="MeshInstance3D" parent="mesh" unique_id=515181686]
 transform = Transform3D(5.70412, 0, 0, 0, 5.70412, 0, 0, 0, 5.70412, 0, 0, 4)
 mesh = SubResource("ArrayMesh_qxfak")
 skeleton = NodePath("")
 
-[node name="preview" type="MeshInstance3D" parent="."]
+[node name="preview" type="MeshInstance3D" parent="." unique_id=1538426994]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
 visible = false
 material_override = SubResource("ShaderMaterial_5jixe")
@@ -158,11 +157,11 @@ instance_shader_parameters/instance_color = Color(1, 1, 1, 0.286275)
 mesh = SubResource("ArrayMesh_sjgth")
 skeleton = NodePath("")
 
-[node name="selectable object" type="Node3D" parent="." node_paths=PackedStringArray("highlight")]
+[node name="selectable object" type="Node3D" parent="." unique_id=1960027886 node_paths=PackedStringArray("highlight")]
 script = ExtResource("3_swa43")
 highlight = NodePath("highlight")
 
-[node name="highlight" type="MeshInstance3D" parent="selectable object"]
+[node name="highlight" type="MeshInstance3D" parent="selectable object" unique_id=1123680195]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
 visible = false
 mesh = SubResource("ArrayMesh_igmvf")

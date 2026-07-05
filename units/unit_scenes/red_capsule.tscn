@@ -1,10 +1,10 @@
-[gd_scene load_steps=13 format=3 uid="uid://dpowhl5rmifsj"]
+[gd_scene format=3 uid="uid://dpowhl5rmifsj"]
 
 [ext_resource type="Material" uid="uid://cm0aikw46qqg8" path="res://units/materials/red.tres" id="1_vkprj"]
 [ext_resource type="Script" uid="uid://ctupeh8712lb6" path="res://units/unit.gd" id="1_y4eia"]
 [ext_resource type="Script" uid="uid://ba4xrxb1iruiy" path="res://selectable_object.gd" id="2_cyjoj"]
-[ext_resource type="Texture2D" uid="uid://d1ftqwwmse71q" path="res://units/red_cap.png" id="2_xvvp1"]
-[ext_resource type="Texture2D" uid="uid://w1ixg5bhlopc" path="res://units/selected_ring.png" id="3_o2ejp"]
+[ext_resource type="Texture2D" uid="uid://d1ftqwwmse71q" path="res://units/portraits/red_cap.png" id="2_xvvp1"]
+[ext_resource type="Texture2D" uid="uid://w1ixg5bhlopc" path="res://ui/rts/selected_ring.png" id="3_o2ejp"]
 [ext_resource type="Script" uid="uid://bdxqb3py8rlhy" path="res://units/components/path_finder.gd" id="5_cxko2"]
 [ext_resource type="Script" uid="uid://blhq32c2prjya" path="res://units/components/flock_agent.gd" id="6_8rd67"]
 [ext_resource type="Script" uid="uid://66el7lriyj8x" path="res://units/unit_roles/gatherer.gd" id="6_o2jwv"]
