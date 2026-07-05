@@ -1,5 +1,13 @@
 extends Node
 
+enum COLLISION_LAYER {
+	WORLD,
+	UNIT,
+	RESERVED,
+	BUILDING,
+	TERRAIN
+}
+
 # Scenes.
 
 # Buildings.

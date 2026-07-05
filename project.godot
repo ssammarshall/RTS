@@ -288,7 +288,8 @@ Backspace={
 
 [layer_names]
 
-3d_physics/layer_1="world"
-3d_physics/layer_2="unit"
-3d_physics/layer_4="building"
-3d_physics/layer_5="terrain"
+3d_physics/layer_1="WORLD"
+3d_physics/layer_2="UNIT"
+3d_physics/layer_3="RESERVED"
+3d_physics/layer_4="BUILDING"
+3d_physics/layer_5="TERRAIN"
