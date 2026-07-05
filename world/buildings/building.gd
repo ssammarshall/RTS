@@ -22,6 +22,8 @@ var preview_material := ShaderMaterial.new()
 func _ready() -> void:
 	select(false)
 	
+	set_building_collision_layer(Global.COLLISION_LAYER.BUILDING, true)
+	
 	preview_mesh.material_overlay = preview_material
 	preview_material.shader = Global.BUILDING_PREVIEW
 
@@ -59,6 +61,6 @@ func set_preview_color(color: Color) -> void:
 
 func start_construction() -> void:
 	display_building_preview(false) # Show Building.
-	set_building_collision_layer(1, true) # Allow Building to interact with world.
+	set_building_collision_layer(Global.COLLISION_LAYER.WORLD, true) # Allow Building to interact with world.
 	construction_complete = true
 	SignalBus.building_constructed.emit(self)
