@@ -8,10 +8,10 @@ enum MODE {
 	ORDER,
 	DRAW # Currently inacessible.
 }
-var mode: MODE = MODE.DEFAULT:
-	set(new_node):
-		if mode == new_node: return
-		match mode:
+var current_mode: MODE = MODE.DEFAULT:
+	set(new_mode):
+		if current_mode == new_mode: return
+		match current_mode:
 			MODE.SELECT:
 				rts_select.stop_select(user)
 			MODE.BUILD:
@@ -21,8 +21,8 @@ var mode: MODE = MODE.DEFAULT:
 			MODE.DRAW:
 				rts_draw.stop_draw(user)
 		
-		mode = new_node
-		match mode:
+		current_mode = new_mode
+		match current_mode:
 			MODE.SELECT:
 				rts_select.start_select(user)
 			MODE.BUILD:
@@ -101,14 +101,14 @@ func input_event_key(event: InputEventKey) -> void:
 	elif event.is_action_released("D"): camera_rig.right = false
 	
 	#if event.is_action_pressed("R"): 
-		#if mode == MODE.BUILD:
+		#if current_mode == MODE.BUILD:
 			#camera_rig.mouse_last_position = camera_rig.mouse_current_position
 			#camera_rig.camera_can_auto_pan = false
 			#Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 			#rts_build.can_rotate_building = true
 		#return
 	#elif event.is_action_released("R"):
-		#if mode == MODE.BUILD:
+		#if current_mode == MODE.BUILD:
 			#Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 			#Input.warp_mouse(camera_rig.mouse_last_position)
 			#rts_build.can_rotate_building = false
@@ -116,7 +116,7 @@ func input_event_key(event: InputEventKey) -> void:
 	
 	# Keypad camera zoom.
 	if event.is_action_pressed("Z"):
-		match mode:
+		match current_mode:
 			MODE.BUILD:
 				if user.ctrl:
 					SignalBus.building_remove_last.emit()
@@ -170,11 +170,11 @@ func input_event_key(event: InputEventKey) -> void:
 					return
 	
 	if event.is_action_pressed("B"):
-		match mode:
+		match current_mode:
 			MODE.BUILD:
-				mode = MODE.DEFAULT
+				current_mode = MODE.DEFAULT
 			_:
-				mode = MODE.BUILD
+				current_mode = MODE.BUILD
 		return
 
 func input_event_mouse_motion(event: InputEventMouseMotion) -> void:
@@ -212,10 +212,10 @@ func input_event_mouse_button(event: InputEventMouseButton) -> void:
 		if result.has("position"):
 			user.mouse_global_position = result["position"]
 		
-		match mode:
+		match current_mode:
 			MODE.DEFAULT:
 				if not user.hold_group: user.clear_selected()
-				mode = MODE.SELECT
+				current_mode = MODE.SELECT
 				if result.has("collider"):
 					var collision: Object = result["collider"]
 					if collision is Building:
@@ -228,17 +228,17 @@ func input_event_mouse_button(event: InputEventMouseButton) -> void:
 				rts_camera.camera_can_auto_pan = false
 			MODE.ORDER:
 				if not user.hold_group: user.clear_selected()
-				mode = MODE.SELECT
+				current_mode = MODE.SELECT
 		return
 	elif event.is_action_released("LMB"):
-		match mode:
+		match current_mode:
 			MODE.BUILD:
 				if rts_build.place_building(user) and not user.hold_group:
-					mode = MODE.DEFAULT
+					current_mode = MODE.DEFAULT
 					return
 				rts_camera.camera_can_auto_pan = true
 			MODE.SELECT:
-				mode = MODE.DEFAULT
+				current_mode = MODE.DEFAULT
 		return
 	elif event.is_action_pressed("RMB"):
 		var result: Dictionary = Util.mouse_raycast(camera_rig.camera, camera_rig.mouse_current_position, 0b11111)
@@ -249,7 +249,7 @@ func input_event_mouse_button(event: InputEventMouseButton) -> void:
 		if result.has("collider"):
 			collision = result["collider"]
 		
-		match mode:
+		match current_mode:
 			MODE.DEFAULT:
 				if user.get_selected_group().units.size() == 0: return
 				if pos == Vector3.ZERO: return
@@ -260,27 +260,27 @@ func input_event_mouse_button(event: InputEventMouseButton) -> void:
 				
 				var nav_map := user.get_world_3d().get_navigation_map()
 				user.mouse_global_position = NavigationServer3D.map_get_closest_point(nav_map, pos)
-				mode = MODE.ORDER
+				current_mode = MODE.ORDER
 			MODE.SELECT:
-				mode = MODE.DEFAULT
+				current_mode = MODE.DEFAULT
 			MODE.BUILD:
 				rts_build.cancel_building_placement()
 			MODE.ORDER: # It never reaches this line?
 				pass
 		return
 	elif event.is_action_released("RMB"):
-		match mode:
+		match current_mode:
 			MODE.ORDER:
 				if !user.shift: user.get_selected_group().clear_pathing()
-				mode = MODE.DEFAULT
+				current_mode = MODE.DEFAULT
 		return
 
 func update(delta: float) -> void:
-	match mode:
+	match current_mode:
 		MODE.SELECT:
 			# Disable unit selection while cursor is hidden during camera rotation.
 			if rts_camera.camera_rotate_mouse:
-				mode = MODE.DEFAULT
+				current_mode = MODE.DEFAULT
 				return
 			rts_select.update(user, delta)
 		MODE.BUILD:
