@@ -45,6 +45,7 @@ folder_colors={
 "res://camera/": "blue",
 "res://camera/modules/": "red",
 "res://commands/": "red",
+"res://commands/unit_commands/": "blue",
 "res://items/": "orange",
 "res://ui/": "pink",
 "res://ui/rts/": "orange",
