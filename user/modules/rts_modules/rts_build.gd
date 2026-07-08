@@ -113,6 +113,7 @@ func place_building(user: User) -> bool:
 	if not building: return false
 	if not can_place_building:
 		can_rotate_building = false
+		was_placement_cancelled = false
 		return false
 	if was_placement_cancelled:
 		was_placement_cancelled = false
