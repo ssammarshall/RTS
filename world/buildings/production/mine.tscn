@@ -1,6 +1,6 @@
 [gd_scene format=4 uid="uid://g4mdodnqw4f5"]
 
-[ext_resource type="Script" uid="uid://dpg70y3fpq7ev" path="res://world/buildings/production/production_building.gd" id="1_t4rvv"]
+[ext_resource type="Script" uid="uid://dpg70y3fpq7ev" path="res://world/buildings/production/resource_building.gd" id="1_t4rvv"]
 [ext_resource type="Script" uid="uid://bnxy0ta2hvx1x" path="res://items/strategic_resource.gd" id="2_46xre"]
 [ext_resource type="PackedScene" uid="uid://ck1c7udo2b4hu" path="res://items/pickaxe.tscn" id="3_ogw2c"]
 [ext_resource type="Script" uid="uid://ba4xrxb1iruiy" path="res://selectable_object.gd" id="3_swa43"]

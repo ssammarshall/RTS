@@ -1,4 +1,4 @@
-class_name ProductionBuilding extends Building
+class_name ResourceBuilding extends Building
 
 @export var nearby_resources_area: Area3D
 @export var nearby_resources_area_collision_shape: CollisionShape3D

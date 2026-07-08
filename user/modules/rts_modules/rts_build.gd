@@ -103,12 +103,12 @@ func check_building_placement(user: User) -> bool:
 		if corner_distances[i] > 2.0:
 			return false
 	
-	if building is ProductionBuilding:
-		var pb := building as ProductionBuilding
-		if pb.nearby_resource_spawns.size() == 0:
-			pb.set_preview_color(Global.YELLOW_TRANSPARENT)
+	if building is ResourceBuilding:
+		var rb := building as ResourceBuilding
+		if rb.nearby_resource_spawns.size() == 0:
+			rb.set_preview_color(Global.YELLOW_TRANSPARENT)
 		else:
-			building.set_preview_color(Global.GREEN_TRANSPARENT)
+			rb.set_preview_color(Global.GREEN_TRANSPARENT)
 	else: building.set_preview_color(Global.GREEN_TRANSPARENT)
 	
 	return true
