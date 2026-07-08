@@ -223,9 +223,11 @@ func input_event_mouse_button(event: InputEventMouseButton) -> void:
 			MODE.SELECT:
 				pass
 			MODE.BUILD:
-				camera_rig.mouse_last_position = camera_rig.mouse_current_position
-				rts_build.can_rotate_building = true
-				rts_camera.camera_can_auto_pan = false
+				if rts_build.building:
+					camera_rig.mouse_last_position = camera_rig.mouse_current_position
+					rts_build.can_rotate_building = true
+					rts_camera.camera_can_auto_pan = false
+				else: current_mode = MODE.SELECT
 			MODE.ORDER:
 				if not user.hold_group: user.clear_selected()
 				current_mode = MODE.SELECT
@@ -264,7 +266,8 @@ func input_event_mouse_button(event: InputEventMouseButton) -> void:
 			MODE.SELECT:
 				current_mode = MODE.DEFAULT
 			MODE.BUILD:
-				rts_build.cancel_building_placement()
+				if not rts_build.building: current_mode = MODE.DEFAULT
+				else: rts_build.cancel_building_placement()
 			MODE.ORDER: # It never reaches this line?
 				pass
 		return

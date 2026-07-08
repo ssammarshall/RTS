@@ -56,8 +56,12 @@ func _on_area_exited(body: Node3D) -> void:
 		overlapping_bodies.erase(body)
 
 func cancel_building_placement() -> void:
-	was_placement_cancelled = true
-	can_rotate_building = false
+	if can_rotate_building:
+		was_placement_cancelled = true
+		can_rotate_building = false
+	elif building:
+		building.queue_free()
+		building = null
 
 func check_building_placement(user: User) -> bool:
 	if not building: return false
