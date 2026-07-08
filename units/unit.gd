@@ -85,7 +85,7 @@ func _on_interaction_area_exited(body: Node3D) -> void:
 
 # Determine the type of target once reached and act accordingly. Move to seperate class?
 func _on_target_reached() -> void:
-	active_role._on_target_reached(self)
+	if active_role: active_role._on_target_reached(self)
 	
 	if target is ResourceSpawn:
 		if resource.type != target.resource.type:
