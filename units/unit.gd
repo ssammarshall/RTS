@@ -19,9 +19,8 @@ var group_num: int = -1
 
 # Allow Commands to be given to unit.
 var command: UnitCommand
+var command_queue: Array[UnitCommand]
 
-signal target_reached
-var target: Node3D
 var nearby_bodies: Array[Node3D]
 
 # Pathing used with PathFinder.
@@ -53,7 +52,6 @@ func _ready() -> void:
 	resource.type = StrategicResource.Type.Stone
 	resource.amount = 0
 	
-	target_reached.connect(Callable(_on_target_reached))
 	interaction_area.area_entered.connect(Callable(_on_interaction_area_entered))
 	interaction_area.area_exited.connect(Callable(_on_interaction_area_exited))
 
@@ -70,41 +68,19 @@ func _physics_process(delta: float) -> void:
 	
 	move_and_slide()
 
+func _on_command_finished() -> void:
+	set_command(null)
+
 # Keep track of all nearby Node3Ds in interaction_area and append to nearby_bodies array.
 func _on_interaction_area_entered(body: Node3D) -> void:
 	var node: Node3D = body.get_parent()
 	nearby_bodies.append(node)
-	
-	if node == target: target_reached.emit()
 
 # Remove all Node3Ds from nearby_bodies array that leave interaction_area.
 func _on_interaction_area_exited(body: Node3D) -> void:
 	var node: Node3D = body.get_parent()
 	if nearby_bodies.has(node):
 		nearby_bodies.erase(node)
-
-# Determine the type of target once reached and act accordingly. Move to seperate class?
-func _on_target_reached() -> void:
-	if command: command._on_target_reached(self)
-	
-	if target is ResourceSpawn:
-		if resource.type != target.resource.type:
-			print("Incorrect type")
-			return
-		elif resource.amount > 1000:
-			print("Max capacity reached")
-			return
-		# ADD LOGIC TO DETERMINE IF UNIT HAS CORRECT ITEM EQUIPPED FOR RESOURCESPAWN
-		resource.amount += target.extract()
-		return
-	
-	if target is Building:
-		if not target.construction_complete:
-			target.start_construction()
-		else:
-			target.unit_interaction(self)
-	
-	path_finder.end_pathing()
 
 # Select Unit and emit selected signal.
 func select(value: bool) -> void:
@@ -121,7 +97,16 @@ func create_unit_card(index: int) -> UnitCard:
 func set_group_num(num: int) -> void:
 	group_num = num
 
+func clear_commands() -> void:
+	command_queue.clear()
+	set_command(null)
+
 func set_command(cmnd: UnitCommand) -> void:
-	if command: command.exit(self)
+	if command:
+		command.exit(self)
+		command.finished.disconnect(Callable(_on_command_finished))
 	command = cmnd
-	if command: command.enter(self)
+	if command:
+		command.finished.connect(Callable(_on_command_finished))
+		command.enter(self)
+	elif command_queue.size() > 0: set_command(command_queue.pop_front())

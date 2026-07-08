@@ -64,20 +64,6 @@ func create_group_card() -> GroupCard:
 	
 	return group_card
 
-# Give all Units in Group a Command.
-func give_command(command: UnitCommand) -> void:
-	for unit in units:
-		unit.set_command(command)
-
-# Set target for each Unit in Group. If target already reached, emit target_reached.
-func assign_target(target: Node3D) -> void:
-	for unit in units:
-		unit.target = target
-		if unit.nearby_bodies.has(target):
-			unit.target_reached.emit()
-		else:
-			unit.path_finder.add_to_path_queue(target.global_position)
-
 # Add path to each Unit's PathFinder.
 func add_path_pos(pos: Vector3) -> void:
 	for unit in units:
@@ -85,7 +71,7 @@ func add_path_pos(pos: Vector3) -> void:
 
 func cancel_commands() -> void:
 	for unit in units:
-		unit.set_command(null)
+		unit.clear_commands()
 
 # End all pathing for each Unit's PathFinder.
 func clear_pathing() -> void:

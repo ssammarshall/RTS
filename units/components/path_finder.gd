@@ -67,5 +67,4 @@ func end_pathing() -> void:
 	set_target_position(unit.global_position)
 	set_velocity(Vector3.ZERO)
 	
-	unit.target = null
 	unit.pathing = false

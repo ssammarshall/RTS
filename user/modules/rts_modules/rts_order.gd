@@ -69,5 +69,9 @@ func set_columns(num: int) -> void:
 			col += 1
 
 func set_target(user: User, target: Node3D) -> void:
-	if not user.hold_group: user.get_selected_group().clear_pathing()
-	user.get_selected_group().assign_target(target)
+	if not user.hold_group:
+		user.get_selected_group().cancel_commands()
+	
+	for i in user.get_selected_group().size():
+		var unit: Unit = user.get_selected_group().units[i]
+		unit.set_command(InteractCommand.new(target))
