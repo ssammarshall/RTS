@@ -30,7 +30,7 @@ func stop_order(user: User) -> void:
 	if !base or !unit_decals: return
 	for i in user.get_selected_group().size():
 		var unit: Unit = user.get_selected_group().units[i]
-		unit.path_finder.add_to_path_queue(unit_decals[i].global_position)
+		unit.set_command(MoveCommand.new(unit_decals[i].global_position))
 	unit_decals.clear()
 	base.queue_free()
 
