@@ -124,4 +124,4 @@ func set_group_num(num: int) -> void:
 func set_command(cmnd: UnitCommand) -> void:
 	if command: command.exit(self)
 	command = cmnd
-	command.enter(self)
+	if command: command.enter(self)
