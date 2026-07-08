@@ -212,14 +212,17 @@ func input_event_mouse_button(event: InputEventMouseButton) -> void:
 		if result.has("position"):
 			user.mouse_global_position = result["position"]
 		
+		var select = func() -> void:
+			current_mode = MODE.SELECT
+			if result.has("collider"):
+				var collision: Object = result["collider"]
+				if collision is Building:
+					rts_select.select_building(user, collision)
+		
 		match current_mode:
 			MODE.DEFAULT:
 				if not user.hold_group: user.clear_selected()
-				current_mode = MODE.SELECT
-				if result.has("collider"):
-					var collision: Object = result["collider"]
-					if collision is Building:
-						rts_select.select_building(user, collision)
+				select.call()
 			MODE.SELECT:
 				pass
 			MODE.BUILD:
@@ -227,7 +230,7 @@ func input_event_mouse_button(event: InputEventMouseButton) -> void:
 					camera_rig.mouse_last_position = camera_rig.mouse_current_position
 					rts_build.can_rotate_building = true
 					rts_camera.camera_can_auto_pan = false
-				else: current_mode = MODE.SELECT
+				else: select.call()
 			MODE.ORDER:
 				if not user.hold_group: user.clear_selected()
 				current_mode = MODE.SELECT
