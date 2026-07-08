@@ -1,6 +1,7 @@
 extends Node
 
 enum COLLISION_LAYER {
+	NONE,
 	WORLD,
 	UNIT,
 	RESERVED,
@@ -25,3 +26,4 @@ const BUILDING_PREVIEW: Shader = preload("res://world/buildings/building_preview
 var GREEN_TRANSPARENT := Color("43e34366")
 var RED_TRANSPARENT := Color("fa0d4e49")
 var WHITE_TRANSPARENT := Color("ffffff49")
+var YELLOW_TRANSPARENT := Color("ffe64366")
