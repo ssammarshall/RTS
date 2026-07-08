@@ -21,3 +21,6 @@ func _ready() -> void:
 
 func _on_target_reached(_unit: Unit) -> void:
 	pass
+
+func _update(_unit: Unit, _delta: float) -> void:
+	pass

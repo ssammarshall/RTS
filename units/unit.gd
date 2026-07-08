@@ -65,6 +65,7 @@ func _physics_process(delta: float) -> void:
 	if pathing: path_finder.physics_update(delta)
 	#flock_agent.physics_update(delta)
 	
+	if active_role: active_role._update(self, delta)
 	if command: command.execute(self, delta)
 	
 	move_and_slide()
