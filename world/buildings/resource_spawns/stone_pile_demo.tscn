@@ -49,15 +49,15 @@ emission = Color(0.920995, 0.920995, 0.920995, 1)
 [sub_resource type="BoxShape3D" id="BoxShape3D_7s7en"]
 size = Vector3(6.00134, 1, 4.4996)
 
-[node name="stone" type="StaticBody3D" unique_id=1400274905 node_paths=PackedStringArray("mesh", "preview_mesh", "collision_shape", "area", "area_collision_shape", "selectable_object") groups=["strategic_resource"]]
+[node name="stone" type="StaticBody3D" unique_id=1400274905 node_paths=PackedStringArray("mesh", "preview_mesh", "collision_shape", "building_area", "building_area_collision_shape", "selectable_object") groups=["strategic_resource"]]
 script = ExtResource("1_x0r7t")
 title = "Stone Deposit"
 resource = SubResource("Resource_r0s6x")
 mesh = NodePath("MeshInstance3D")
 preview_mesh = NodePath("selectable_object/highlight")
 collision_shape = NodePath("CollisionShape3D")
-area = NodePath("Area3D")
-area_collision_shape = NodePath("Area3D/CollisionShape3D")
+building_area = NodePath("Area3D")
+building_area_collision_shape = NodePath("Area3D/CollisionShape3D")
 selectable_object = NodePath("selectable_object")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=336636095]

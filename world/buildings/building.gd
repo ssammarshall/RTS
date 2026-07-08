@@ -9,8 +9,8 @@ var resource_limit: int = 1000
 @export var mesh: Node3D
 @export var preview_mesh: MeshInstance3D
 @export var collision_shape: CollisionShape3D
-@export var area: Area3D
-@export var area_collision_shape: CollisionShape3D
+@export var building_area: Area3D
+@export var building_area_collision_shape: CollisionShape3D
 @export var selectable_object: SelectableObject
 
 # Construction.
@@ -23,6 +23,8 @@ func _ready() -> void:
 	select(false)
 	
 	set_building_collision_layer(Global.COLLISION_LAYER.BUILDING, true)
+	building_area.set_collision_layer_value(Global.COLLISION_LAYER.BUILDING, true)
+	building_area.set_collision_mask_value(Global.COLLISION_LAYER.BUILDING, true)
 	
 	preview_mesh.material_overlay = preview_material
 	preview_material.shader = Global.BUILDING_PREVIEW

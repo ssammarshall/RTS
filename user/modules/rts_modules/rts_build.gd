@@ -12,8 +12,8 @@ func _init() -> void:
 func _on_start_building_placement(user: User, bldg: Building) -> void:
 	building = bldg
 	
-	building.area.area_entered.connect(Callable(_on_area_entered))
-	building.area.area_exited.connect(Callable(_on_area_exited))
+	building.building_area.area_entered.connect(Callable(_on_area_entered))
+	building.building_area.area_exited.connect(Callable(_on_area_exited))
 	
 	user.get_tree().get_root().add_child(building)
 	building.display_building_preview(true)
@@ -66,15 +66,15 @@ func check_building_placement(user: User) -> bool:
 	
 	if overlapping_bodies.size() > 0: return false
 	
-	var area_collision := building.area_collision_shape
+	var area_collision := building.building_area_collision_shape
 	var size: Vector3 = area_collision.get_shape().size * 0.5
 	
 	size.y -= 1
 	var area_corners: Array[Vector3] = [
-		building.area.global_position + Vector3(size.x, -size.y, size.z),
-		building.area.global_position + Vector3(size.x, -size.y, -size.z),
-		building.area.global_position + Vector3(-size.x, -size.y, size.z),
-		building.area.global_position + Vector3(-size.x, -size.y, -size.z)
+		building.building_area.global_position + Vector3(size.x, -size.y, size.z),
+		building.building_area.global_position + Vector3(size.x, -size.y, -size.z),
+		building.building_area.global_position + Vector3(-size.x, -size.y, size.z),
+		building.building_area.global_position + Vector3(-size.x, -size.y, -size.z)
 	]
 	var corner_distances: Array[float] = []
 	
@@ -99,7 +99,14 @@ func check_building_placement(user: User) -> bool:
 		if corner_distances[i] > 2.0:
 			return false
 	
-	building.set_preview_color(Global.GREEN_TRANSPARENT)
+	if building is ProductionBuilding:
+		var pb := building as ProductionBuilding
+		if pb.nearby_resource_spawns.size() == 0:
+			pb.set_preview_color(Global.YELLOW_TRANSPARENT)
+		else:
+			building.set_preview_color(Global.GREEN_TRANSPARENT)
+	else: building.set_preview_color(Global.GREEN_TRANSPARENT)
+	
 	return true
 
 func place_building(user: User) -> bool:
