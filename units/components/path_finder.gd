@@ -69,4 +69,3 @@ func end_pathing() -> void:
 	
 	unit.target = null
 	unit.pathing = false
-	unit.set_command(unit.default_command)

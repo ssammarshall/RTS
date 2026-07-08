@@ -20,7 +20,6 @@ material = ExtResource("2_ghact")
 radius = 1.5
 
 [node name="GreenCapsule" type="CharacterBody3D" unique_id=1687250402 node_paths=PackedStringArray("selectable", "path_finder", "flock_agent", "unit_roles")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 script = ExtResource("1_gn4o7")
 selectable = NodePath("SelectableObject")
 path_finder = NodePath("PathFinder")

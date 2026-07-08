@@ -65,9 +65,9 @@ func create_group_card() -> GroupCard:
 	return group_card
 
 # Give all Units in Group a Command.
-func give_command(command: Command) -> void:
+func give_command(command: UnitCommand) -> void:
 	for unit in units:
-		if unit.available_commands.has(command): unit.set_command(command)
+		unit.set_command(command)
 
 # Set target for each Unit in Group. If target already reached, emit target_reached.
 func assign_target(target: Node3D) -> void:

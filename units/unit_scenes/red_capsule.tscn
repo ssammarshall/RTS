@@ -19,45 +19,46 @@ material = ExtResource("1_vkprj")
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_m6kv7"]
 radius = 1.5
 
-[node name="RedCapsule" type="CharacterBody3D" node_paths=PackedStringArray("selectable", "path_finder", "flock_agent")]
+[node name="RedCapsule" type="CharacterBody3D" unique_id=1181767852 node_paths=PackedStringArray("selectable", "path_finder", "flock_agent", "unit_roles")]
 script = ExtResource("1_y4eia")
 selectable = NodePath("SelectableObject")
 path_finder = NodePath("PathFinder")
 flock_agent = NodePath("FlockAgent")
+unit_roles = [NodePath("Gatherer")]
 portrait = ExtResource("2_xvvp1")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=584408650]
 mesh = SubResource("CapsuleMesh_1ov8r")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=333109722]
 shape = SubResource("CapsuleShape3D_eleg7")
 
-[node name="Nose" type="MeshInstance3D" parent="."]
+[node name="Nose" type="MeshInstance3D" parent="." unique_id=1362705540]
 transform = Transform3D(0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3, 0, 0.421111, -0.50846)
 mesh = SubResource("BoxMesh_ihcuf")
 
-[node name="SelectableObject" type="Node3D" parent="." node_paths=PackedStringArray("highlight")]
+[node name="SelectableObject" type="Node3D" parent="." unique_id=1397852986 node_paths=PackedStringArray("highlight")]
 script = ExtResource("2_cyjoj")
 highlight = NodePath("Decal")
 
-[node name="Decal" type="Decal" parent="SelectableObject"]
+[node name="Decal" type="Decal" parent="SelectableObject" unique_id=1173525040]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.95, 0)
 visible = false
 size = Vector3(2, 0.2, 2)
 texture_albedo = ExtResource("3_o2ejp")
 
-[node name="FlockAgent" type="Node3D" parent="."]
+[node name="FlockAgent" type="Node3D" parent="." unique_id=1280501369]
 script = ExtResource("6_8rd67")
 
-[node name="PathFinder" type="NavigationAgent3D" parent="." node_paths=PackedStringArray("unit")]
+[node name="PathFinder" type="NavigationAgent3D" parent="." unique_id=1458925738 node_paths=PackedStringArray("unit")]
 avoidance_enabled = true
 script = ExtResource("5_cxko2")
 unit = NodePath("..")
 
-[node name="Gatherer" type="Node" parent="."]
+[node name="Gatherer" type="Node" parent="." unique_id=2037843099]
 script = ExtResource("6_o2jwv")
 
-[node name="Area3D" type="Area3D" parent="."]
+[node name="Area3D" type="Area3D" parent="." unique_id=1700170398]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D" unique_id=1995402533]
 shape = SubResource("CylinderShape3D_m6kv7")

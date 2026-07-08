@@ -28,4 +28,3 @@ func _on_nearby_resources_area_exited(body: Node3D) -> void:
 	body = body.owner
 	if body is ResourceSpawn and nearby_resource_spawns.has(body):
 		nearby_resource_spawns.erase(body)
-	print("total spawns: ", nearby_resource_spawns.size())

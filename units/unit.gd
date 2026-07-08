@@ -9,7 +9,7 @@ class_name Unit extends CharacterBody3D
 @export var flock_agent: FlockAgent
 
 # Unit Roles.
-@export var unit_roles: Array[UnitRole] # Currently not in use.
+@export var unit_roles: Array[UnitRole]
 var active_role: UnitRole
 
 # Selection.
@@ -18,9 +18,7 @@ signal selected(value: bool)
 var group_num: int = -1
 
 # Allow Commands to be given to unit.
-var command: Command
-var default_command: Command
-var available_commands: Array[Command]
+var command: UnitCommand
 
 signal target_reached
 var target: Node3D
@@ -47,6 +45,10 @@ var height: float = 2.0
 func _ready() -> void:
 	select(false)
 	
+	# Assign active role if not already assigned.
+	if not active_role and unit_roles.size() > 0: active_role = unit_roles[0]
+	if active_role: active_role.start_schedule()
+	
 	# TEST
 	resource.type = StrategicResource.Type.Stone
 	resource.amount = 0
@@ -54,12 +56,6 @@ func _ready() -> void:
 	target_reached.connect(Callable(_on_target_reached))
 	interaction_area.area_entered.connect(Callable(_on_interaction_area_entered))
 	interaction_area.area_exited.connect(Callable(_on_interaction_area_exited))
-	
-	# Enumerate through assigned Unit Roles to find Unit's Components.
-	for role in unit_roles:
-		for cmnd in role.commands: # Give each Command in Role to Unit.
-			if !available_commands.has(cmnd): available_commands.append(cmnd)
-	if available_commands: default_command = available_commands[0]
 
 func _physics_process(delta: float) -> void:
 	# Add the gravity.
@@ -88,6 +84,8 @@ func _on_interaction_area_exited(body: Node3D) -> void:
 
 # Determine the type of target once reached and act accordingly. Move to seperate class?
 func _on_target_reached() -> void:
+	active_role._on_target_reached(self)
+	
 	if target is ResourceSpawn:
 		if resource.type != target.resource.type:
 			print("Incorrect type")
@@ -122,5 +120,5 @@ func create_unit_card(index: int) -> UnitCard:
 func set_group_num(num: int) -> void:
 	group_num = num
 
-func set_command(cmnd: Command) -> void:
+func set_command(cmnd: UnitCommand) -> void:
 	command = cmnd
