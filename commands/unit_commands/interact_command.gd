@@ -3,12 +3,9 @@ class_name InteractCommand extends UnitCommand
 var target: Node3D
 var resource: StrategicResource
 
-func _init(_target: Node3D, _resource: StrategicResource = null) -> void:
+func _init(_target: Node3D) -> void:
 	target = _target
-	if _resource: resource = _resource
-	elif target is Building:
-		var b := target as Building
-		resource = b.resource
+	assert(target != null)
 
 # Called once UnitCommand is set to active command.
 func enter(unit: Unit) -> void:
