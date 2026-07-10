@@ -4,6 +4,7 @@ class_name Building extends StaticBody3D
 @export var resource: StrategicResource # eventually update to have more than one type of resource
 var resource_limit: int = 1000
 @export var item: PackedScene
+var job: Job = null
 
 @export_category("RequiredChildren")
 @export var mesh: Node3D
@@ -30,11 +31,8 @@ func _ready() -> void:
 	preview_material.shader = Global.BUILDING_PREVIEW
 
 # This function needs to be overriden by Node inheriting Building.
-func unit_interaction(unit: Unit) -> void:
-	# TEST
-	if item:
-		unit.equipped_item = item.instantiate() as Item
-		unit.add_child(unit.equipped_item)
+func unit_interaction(_unit: Unit) -> void:
+	pass
 
 func update_resource_totals() -> void:
 	if not resource: return

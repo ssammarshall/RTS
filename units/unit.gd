@@ -8,9 +8,8 @@ class_name Unit extends CharacterBody3D
 @export var path_finder: PathFinder
 @export var flock_agent: FlockAgent
 
-# Unit Roles.
-@export var unit_roles: Array[UnitRole]
-var active_role: UnitRole
+# Jobs.
+var current_job: Job
 
 # Selection.
 signal selected(value: bool)
@@ -33,7 +32,7 @@ var pathing: bool = false
 @export var run_speed: float = 8.0
 @export var crouch_speed: float = 3.0
 @export var jump_height: float = 3.0
-@export var current_speed: float= 10
+@export var current_speed: float = 10
 
 # Inventory                                           MOVE TO SEPERATE CLASS
 var resource := StrategicResource.new()
@@ -43,10 +42,6 @@ var height: float = 2.0
 
 func _ready() -> void:
 	select(false)
-	
-	# Assign active role if not already assigned.
-	if not active_role and unit_roles.size() > 0: active_role = unit_roles[0]
-	if active_role: active_role.start_schedule()
 	
 	# TEST
 	resource.type = StrategicResource.Type.Stone
@@ -63,7 +58,7 @@ func _physics_process(delta: float) -> void:
 	if pathing: path_finder.physics_update(delta)
 	#flock_agent.physics_update(delta)
 	
-	if active_role: active_role._update(self, delta)
+	if current_job: current_job._update(self, delta)
 	if command: command.execute(self, delta)
 	
 	move_and_slide()
@@ -97,16 +92,21 @@ func create_unit_card(index: int) -> UnitCard:
 func set_group_num(num: int) -> void:
 	group_num = num
 
+func set_job(job: Job) -> void:
+	current_job = job
+	if current_job: current_job.start_schedule(self)
+
 func clear_commands() -> void:
 	command_queue.clear()
 	set_command(null)
 
 func set_command(cmnd: UnitCommand) -> void:
-	if command:
-		command.exit(self)
+	if command: # Disconnect and exit current command.
 		command.finished.disconnect(Callable(_on_command_finished))
+		command.exit(self)
 	command = cmnd
-	if command:
+	if command: # Connect and enter next command.
 		command.finished.connect(Callable(_on_command_finished))
 		command.enter(self)
-	elif command_queue.size() > 0: set_command(command_queue.pop_front())
+	elif command_queue.size() > 0: set_command(command_queue.pop_front()) # Next command in queue.
+	elif current_job: set_command(current_job.next_command()) # Next command for current job.

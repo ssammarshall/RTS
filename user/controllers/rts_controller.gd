@@ -260,7 +260,7 @@ func input_event_mouse_button(event: InputEventMouseButton) -> void:
 				if pos == Vector3.ZERO: return
 				
 				if collision is Building:
-					rts_order.set_target(user, collision)
+					rts_order.set_target_building(user, collision as Building)
 					return
 				
 				var nav_map := user.get_world_3d().get_navigation_map()

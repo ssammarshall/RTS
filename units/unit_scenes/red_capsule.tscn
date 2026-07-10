@@ -7,7 +7,6 @@
 [ext_resource type="Texture2D" uid="uid://w1ixg5bhlopc" path="res://ui/rts/selected_ring.png" id="3_o2ejp"]
 [ext_resource type="Script" uid="uid://bdxqb3py8rlhy" path="res://units/components/path_finder.gd" id="5_cxko2"]
 [ext_resource type="Script" uid="uid://blhq32c2prjya" path="res://units/components/flock_agent.gd" id="6_8rd67"]
-[ext_resource type="Script" uid="uid://66el7lriyj8x" path="res://units/unit_roles/gatherer.gd" id="6_o2jwv"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_1ov8r"]
 material = ExtResource("1_vkprj")
@@ -19,12 +18,11 @@ material = ExtResource("1_vkprj")
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_m6kv7"]
 radius = 1.5
 
-[node name="RedCapsule" type="CharacterBody3D" unique_id=1181767852 node_paths=PackedStringArray("selectable", "path_finder", "flock_agent", "unit_roles")]
+[node name="RedCapsule" type="CharacterBody3D" unique_id=1181767852 node_paths=PackedStringArray("selectable", "path_finder", "flock_agent")]
 script = ExtResource("1_y4eia")
 selectable = NodePath("SelectableObject")
 path_finder = NodePath("PathFinder")
 flock_agent = NodePath("FlockAgent")
-unit_roles = [NodePath("Gatherer")]
 portrait = ExtResource("2_xvvp1")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=584408650]
@@ -54,9 +52,6 @@ script = ExtResource("6_8rd67")
 avoidance_enabled = true
 script = ExtResource("5_cxko2")
 unit = NodePath("..")
-
-[node name="Gatherer" type="Node" parent="." unique_id=2037843099]
-script = ExtResource("6_o2jwv")
 
 [node name="Area3D" type="Area3D" parent="." unique_id=1700170398]
 

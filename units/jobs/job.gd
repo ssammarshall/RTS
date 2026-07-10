@@ -1,10 +1,10 @@
-class_name UnitRole extends Node
+class_name Job extends Resource
 
 # Available Commands.
 var schedule: Array[UnitCommand] = []
 var current_command_index: int = 0
 
-func start_schedule() -> void:
+func start_schedule(_unit: Unit) -> void:
 	current_command_index = 0
 
 func get_current_command() -> UnitCommand:
@@ -16,8 +16,9 @@ func next_command() -> UnitCommand:
 	
 	return schedule[current_command_index]
 
-func _ready() -> void:
-	pass
+func copy() -> Job:
+	var job := Job.new()
+	return job
 
 func _update(_unit: Unit, _delta: float) -> void:
 	pass
