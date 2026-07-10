@@ -13,7 +13,7 @@ enum COLLISION_LAYER {
 
 # Buildings.
 # Production Buildings.
-const MINE: PackedScene = preload("res://world/buildings/production/mine.tscn")
+const MINE: PackedScene = preload("uid://g4mdodnqw4f5")
 
 # UI.
 const GROUP_CARD: PackedScene = preload("uid://bk2ukam6im5of")

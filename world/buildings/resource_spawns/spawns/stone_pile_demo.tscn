@@ -1,6 +1,6 @@
 [gd_scene format=4 uid="uid://b2qbrqpdtg640"]
 
-[ext_resource type="Script" uid="uid://cx7ydhreftw7s" path="res://world/buildings/resource_spawns/resource_spawn.gd" id="1_x0r7t"]
+[ext_resource type="Script" uid="uid://cx7ydhreftw7s" path="res://world/buildings/resource_spawns/spawns/resource_spawn.gd" id="1_x0r7t"]
 [ext_resource type="Script" uid="uid://bnxy0ta2hvx1x" path="res://items/strategic_resource.gd" id="2_tn26p"]
 [ext_resource type="Script" uid="uid://ba4xrxb1iruiy" path="res://selectable_object.gd" id="3_pelp6"]
 

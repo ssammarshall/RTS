@@ -4,20 +4,22 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cayahestb1nrs"
-path="res://.godot/imported/mine.glb-986c320b4c2d7efa34403612eb06bf2e.scn"
+path="res://.godot/imported/mine.glb-d5b244f45e4c40a9075d845189f32be7.scn"
 
 [deps]
 
-source_file="res://world/buildings/production/mine.glb"
-dest_files=["res://.godot/imported/mine.glb-986c320b4c2d7efa34403612eb06bf2e.scn"]
+source_file="res://world/buildings/resource_spawns/buildings/mine.glb"
+dest_files=["res://.godot/imported/mine.glb-d5b244f45e4c40a9075d845189f32be7.scn"]
 
 [params]
 
 nodes/root_type=""
 nodes/root_name=""
+nodes/root_script=null
 nodes/apply_root_scale=true
 nodes/root_scale=1.0
 nodes/import_as_skeleton_bones=false
+nodes/use_name_suffixes=true
 nodes/use_node_type_suffixes=true
 meshes/ensure_tangents=true
 meshes/generate_lods=true
@@ -32,6 +34,9 @@ animation/trimming=false
 animation/remove_immutable_tracks=true
 animation/import_rest_as_RESET=false
 import_script/path=""
+materials/extract=0
+materials/extract_format=0
+materials/extract_path=""
 _subresources={}
 gltf/naming_version=1
 gltf/embedded_image_handling=1
