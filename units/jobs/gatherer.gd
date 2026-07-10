@@ -9,12 +9,14 @@ func _init() -> void:
 func start_schedule(unit: Unit) -> void:
 	super.start_schedule(unit)
 	
-	var distance: float = INF
+	var closest_distance: float = INF
 	if resource_building and not resource_spawn:
 		var spawns := resource_building.nearby_resource_spawns
 		
 		for i in spawns.size():
-			if resource_building.global_position.distance_squared_to(spawns[i].global_position) < distance:
+			var dist := resource_building.global_position.distance_squared_to(spawns[i].global_position)
+			if dist < closest_distance:
+				closest_distance = dist
 				resource_spawn = spawns[i]
 		if not resource_spawn:
 			printerr("No ResourceSpawn found")
@@ -22,7 +24,9 @@ func start_schedule(unit: Unit) -> void:
 		var buildings := resource_spawn.nearby_resource_buildings
 		
 		for i in buildings.size():
-			if resource_spawn.global_position.distance_squared_to(buildings[i].global_position) < distance:
+			var dist := resource_spawn.global_position.distance_squared_to(buildings[i].global_position)
+			if dist < closest_distance:
+				closest_distance = dist
 				resource_building = buildings[i]
 		if not resource_building:
 			printerr("No ResourceBuilding found")
