@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cayahestb1nrs"
-path="res://.godot/imported/mine.glb-d5b244f45e4c40a9075d845189f32be7.scn"
+path="res://.godot/imported/mine.glb-c9774d2865dff7a5296097c8cc69a821.scn"
 
 [deps]
 
-source_file="res://world/buildings/resource_spawns/buildings/mine.glb"
-dest_files=["res://.godot/imported/mine.glb-d5b244f45e4c40a9075d845189f32be7.scn"]
+source_file="res://world/buildings/resource/buildings/mine.glb"
+dest_files=["res://.godot/imported/mine.glb-c9774d2865dff7a5296097c8cc69a821.scn"]
 
 [params]
 

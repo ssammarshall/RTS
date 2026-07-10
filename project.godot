@@ -65,7 +65,9 @@ folder_colors={
 "res://world/buildings/": "orange",
 "res://world/buildings/military/": "red",
 "res://world/buildings/production/": "yellow",
-"res://world/buildings/resource_spawns/": "gray",
+"res://world/buildings/resource/": "gray",
+"res://world/buildings/resource/buildings/": "orange",
+"res://world/buildings/resource/spawns/": "purple",
 "res://world/landmarks/": "teal",
 "res://world/maps/": "purple"
 }
