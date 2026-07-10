@@ -8,7 +8,8 @@ func _ready() -> void:
 	
 	construction_complete = true # ResourceSpawns do not need to be constructed.
 	job = Gatherer.new()
-	job.resource_spawn = self
+	var g := job as Gatherer
+	g.resource_spawn = self
 
 func extract() -> int:
 	if resource.amount < 0: return 0
