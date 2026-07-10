@@ -1,7 +1,6 @@
 class_name InteractCommand extends UnitCommand
 
 var target: Node3D
-var resource: StrategicResource
 
 func _init(_target: Node3D) -> void:
 	target = _target
@@ -23,10 +22,7 @@ func exit(unit: Unit) -> void:
 	if unit.pathing: unit.path_finder.end_pathing()
 
 func interact(unit: Unit) -> void:
-	if not resource:
-		printerr("resource is null; target: ", target.name)
-	
-	elif target is ResourceSpawn:
+	if target is ResourceSpawn:
 		var rs := target as ResourceSpawn
 		if unit.resource.type != rs.resource.type:
 			print("Incorrect type")
@@ -35,7 +31,6 @@ func interact(unit: Unit) -> void:
 		# ADD LOGIC TO DETERMINE IF UNIT HAS CORRECT ITEM EQUIPPED FOR RESOURCESPAWN
 		else:
 			unit.resource.amount += rs.extract()
-			print("resource extraced: ", resource.type_name[resource.type])
 	
 	elif target is Building:
 		var b := target as Building
