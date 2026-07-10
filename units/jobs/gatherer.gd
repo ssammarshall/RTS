@@ -47,6 +47,7 @@ func start_schedule(unit: Unit) -> void:
 	unit.set_command(get_current_command())
 
 func set_first_command(command: InteractCommand) -> void:
+	schedule.clear()
 	if command.target is ResourceBuilding: # Equip item first, then gather resource.
 		schedule.append(command)
 		schedule.append(InteractCommand.new(resource_spawn))
