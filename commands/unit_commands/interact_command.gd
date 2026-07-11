@@ -24,13 +24,11 @@ func exit(unit: Unit) -> void:
 func interact(unit: Unit) -> void:
 	if target is ResourceSpawn:
 		var rs := target as ResourceSpawn
-		if unit.resource.type != rs.resource.type:
-			print("Incorrect type")
-		elif unit.resource.amount > 1000:
+		unit.inventory.swap_resource_type(rs.resource.type)
+		if unit.inventory.resource.amount >= unit.inventory.resource_limit:
 			print("Max capacity reached")
-		# ADD LOGIC TO DETERMINE IF UNIT HAS CORRECT ITEM EQUIPPED FOR RESOURCESPAWN
 		else:
-			unit.resource.amount += rs.extract()
+			rs.unit_interaction(unit)
 	
 	elif target is Building:
 		var b := target as Building

@@ -19,7 +19,10 @@ func extract() -> int:
 
 func unit_interaction(unit: Unit) -> void:
 	# TEMP
-	if not unit.equipped_item: return
-	elif unit.resource.type != resource.type: return
+	if not unit.inventory.equipped_item: return
+	elif unit.inventory.resource.type != resource.type: # Replace unit's resource with a new resource of the same type as the ResourceSpawn.
+		var r := StrategicResource.new()
+		r.type = resource.type
+		unit.inventory.resource = r
 	
-	unit.resource.amount += extract()
+	unit.inventory.resource.amount += extract()

@@ -34,12 +34,16 @@ func start_schedule(unit: Unit) -> void:
 	if not resource_building or not resource_spawn:
 		printerr("Cancel job. ", resource_building, resource_spawn)
 		unit.set_job(null)
+		
+		# Go to either the ResourceBuilding or ResourceSpawn if set.
+		if resource_building: unit.set_command(MoveCommand.new(resource_building.global_position))
+		elif resource_spawn: unit.set_command(MoveCommand.new(resource_spawn.global_position))
 		return
 	
 	if not resource_building.item: # No item needed to gather resource.
-		unit.equipped_item = null
+		unit.inventory.equipped_item = null
 		set_first_command(InteractCommand.new(resource_spawn))
-	elif unit.equipped_item != resource_building.item: # Unit does not have required item to gather resource. Go equip the item.
+	elif unit.inventory.equipped_item != resource_building.item: # Unit does not have required item to gather resource. Go equip the item.
 		set_first_command(InteractCommand.new(resource_building))
 	else: # Go to gather resource.
 		set_first_command(InteractCommand.new(resource_spawn))

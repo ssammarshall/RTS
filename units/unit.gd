@@ -34,18 +34,13 @@ var pathing: bool = false
 @export var jump_height: float = 3.0
 @export var current_speed: float = 10
 
-# Inventory                                           MOVE TO SEPERATE CLASS
-var resource := StrategicResource.new()
-var equipped_item: Item
+# Inventory
+var inventory: Inventory = Inventory.new()
 
 var height: float = 2.0
 
 func _ready() -> void:
 	select(false)
-	
-	# TEST
-	resource.type = StrategicResource.Type.Stone
-	resource.amount = 0
 	
 	interaction_area.area_entered.connect(Callable(_on_interaction_area_entered))
 	interaction_area.area_exited.connect(Callable(_on_interaction_area_exited))
