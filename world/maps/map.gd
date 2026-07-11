@@ -1,6 +1,10 @@
 class_name Map extends Node3D
 
-@export var nav_region: NavigationRegion3D
+## Owns the building list and delegates navigation to its [NavGrid] component,
+## which carves placed buildings out of a tiled navigation mesh.
+
+@export var nav_grid: NavGrid
+@export var terrain_root: Node3D
 
 var buildings: Array[Building] = []
 
@@ -8,13 +12,13 @@ func _ready() -> void:
 	SignalBus.building_placed.connect(Callable(_on_building_placed))
 	SignalBus.building_remove_last.connect(Callable(_on_building_remove_last))
 	SignalBus.building_constructed.connect(Callable(_on_building_constructed))
-	
-	nav_region.bake_finished.connect(Callable(_on_bake_finished))
 
-func _on_building_placed(building: Building) ->  void:
+	nav_grid.build(terrain_root)
+
+func _on_building_placed(building: Building) -> void:
 	building.get_parent().remove_child(building)
 	buildings.append(building)
-	nav_region.add_child(building)
+	add_child(building)
 
 func _on_building_remove_last() -> void:
 	var size: int = buildings.size()
@@ -26,9 +30,14 @@ func _on_building_remove_last() -> void:
 
 func _on_building_constructed(building: Building) -> void:
 	if not buildings.has(building): return
-	
-	if nav_region.is_baking(): await nav_region.bake_finished
-	nav_region.bake_navigation_mesh(true)
+	nav_grid.carve_building(building)
 
-func _on_bake_finished() -> void:
-	print("map finished baking navigation")
+func find_buildings(building_type: Variant, _resource: StrategicResource = null) -> Array[Building]:
+	var building_list: Array[Building]
+	for building in buildings:
+		if is_instance_of(building, building_type):
+			if _resource:
+				if building.resource.type == _resource.type: building_list.append(building)
+				else: continue
+			else: building_list.append(building)
+	return building_list
