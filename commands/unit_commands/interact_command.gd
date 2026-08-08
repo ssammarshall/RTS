@@ -24,11 +24,17 @@ func exit(unit: Unit) -> void:
 func interact(unit: Unit) -> void:
 	if target is ResourceSpawn:
 		var rs := target as ResourceSpawn
-		unit.inventory.swap_resource_type(rs.resource.type)
-		if unit.inventory.resource.amount >= unit.inventory.resource_limit:
-			print("Max capacity reached")
+		if rs.get_item_type() != ItemData.Type.NONE and not unit.inventory.has_item(rs.get_item_type()):
+			print("Unit does not have required item to gather resource.")
 		else:
-			rs.unit_interaction(unit)
+			unit.inventory.swap_resource_type(rs.resource.type)
+			if unit.inventory.resource.amount >= unit.inventory.resource_limit:
+				print("Max capacity reached")
+			elif rs.resource.amount <= 0:
+				print("Resource depleted")
+			else:
+				rs.unit_interaction(unit)
+				return
 	
 	elif target is Building:
 		var b := target as Building

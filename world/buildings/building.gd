@@ -3,7 +3,7 @@ class_name Building extends StaticBody3D
 @export var title: String
 @export var resource: StrategicResource # eventually update to have more than one type of resource
 var resource_limit: int = 1000
-@export var item: PackedScene
+@export var item_data: ItemData
 var job: Job = null
 
 @export_category("RequiredChildren")
@@ -50,6 +50,9 @@ func display_building_preview(display: bool) -> void:
 	else:
 		mesh.show()
 		preview_mesh.hide()
+
+func get_item_type() -> ItemData.Type:
+	return item_data.type if item_data else ItemData.Type.NONE
 
 func set_building_collision_layer(layer: int, value: bool) -> void:
 	if layer == 0 or layer > 32: return

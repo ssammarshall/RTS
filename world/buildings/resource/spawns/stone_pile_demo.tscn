@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cx7ydhreftw7s" path="res://world/buildings/resource/spawns/resource_spawn.gd" id="1_x0r7t"]
 [ext_resource type="Script" uid="uid://bnxy0ta2hvx1x" path="res://items/strategic_resource.gd" id="2_tn26p"]
+[ext_resource type="Resource" uid="uid://chh0a7qa4mi6j" path="res://items/pickaxe.tres" id="3_cw1c6"]
 [ext_resource type="Script" uid="uid://ba4xrxb1iruiy" path="res://selectable_object.gd" id="3_pelp6"]
 
 [sub_resource type="Resource" id="Resource_r0s6x"]
@@ -53,6 +54,7 @@ size = Vector3(6.00134, 1, 4.4996)
 script = ExtResource("1_x0r7t")
 title = "Stone Deposit"
 resource = SubResource("Resource_r0s6x")
+item_data = ExtResource("3_cw1c6")
 mesh = NodePath("MeshInstance3D")
 preview_mesh = NodePath("selectable_object/highlight")
 collision_shape = NodePath("CollisionShape3D")

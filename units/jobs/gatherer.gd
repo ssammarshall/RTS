@@ -40,10 +40,14 @@ func start_schedule(unit: Unit) -> void:
 		elif resource_spawn: unit.set_command(MoveCommand.new(resource_spawn.global_position))
 		return
 	
-	if not resource_building.item: # No item needed to gather resource.
-		unit.inventory.equipped_item = null
+	if resource_spawn.get_item_type() == ItemData.Type.NONE: # No item needed to gather resource.
+		unit.inventory.unequip(unit) # Unequip any item the unit may have equipped. TODO: Check if the item can be saved before unequipping.
 		set_first_command(InteractCommand.new(resource_spawn))
-	elif unit.inventory.equipped_item != resource_building.item: # Unit does not have required item to gather resource. Go equip the item.
+	elif not unit.inventory.has_item(resource_spawn.get_item_type()): # Unit does not have required item to gather resource. Go equip the item.
+		if resource_building.get_item_type() != resource_spawn.get_item_type():
+			printerr("ResourceBuilding and ResourceSpawn have different required item types. Cancel job. ", resource_building.get_item_type(), resource_spawn.get_item_type())
+			unit.set_job(null)
+			return
 		set_first_command(InteractCommand.new(resource_building))
 	else: # Go to gather resource.
 		set_first_command(InteractCommand.new(resource_spawn))

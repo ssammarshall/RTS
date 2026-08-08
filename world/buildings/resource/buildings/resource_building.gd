@@ -46,20 +46,15 @@ func start_construction() -> void:
 		spawn.nearby_resource_buildings.append(self)
 
 func deposit_resource(unit: Unit) -> void:
-	if unit.inventory.resource.type != resource.type: return
+	if not unit.inventory.resource: return
+	elif unit.inventory.resource.type != resource.type: return
 	elif resource.amount >= resource_limit: return
+
 	resource.amount += unit.inventory.resource.amount
 	unit.inventory.resource.amount = 0
 
 func unit_interaction(unit: Unit) -> void:
-	if item and not unit.inventory.equipped_item: # Equip item if unit does not have an item equipped.
-		unit.inventory.equipped_item = item.instantiate() as Item
-		unit.add_child(unit.inventory.equipped_item)
-
-		# Replace unit's resource with a new resource of the same type as the ResourceBuilding.
-		if not unit.inventory.resource or unit.inventory.resource.type != resource.type:
-			var r := StrategicResource.new()
-			r.type = resource.type
-			unit.inventory.resource = r
+	if get_item_type() != ItemData.Type.NONE and not unit.inventory.has_item(get_item_type()):
+		unit.inventory.equip(item_data, unit)
 	
 	deposit_resource(unit)
