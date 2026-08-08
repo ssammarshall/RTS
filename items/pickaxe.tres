@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://chh0a7qa4mi6j"]
+
+[ext_resource type="PackedScene" uid="uid://ck1c7udo2b4hu" path="res://items/pickaxe.tscn" id="1_ixunl"]
+[ext_resource type="Script" uid="uid://bdungiilfjd1i" path="res://items/item_data.gd" id="1_kejro"]
+
+[resource]
+script = ExtResource("1_kejro")
+type = 1
+attack_damage = 2
+throw_damage = 2
+scene = ExtResource("1_ixunl")
+metadata/_custom_type_script = "uid://bdungiilfjd1i"
