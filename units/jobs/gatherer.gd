@@ -6,6 +6,10 @@ var anchor := ResourceAnchor.BUILDING
 var resource_building: ResourceBuilding
 var resource_spawn: ResourceSpawn
 
+var _unit: Unit
+var _connected_building: Building
+var _connected_spawn: ResourceSpawn
+
 func _init() -> void:
 	pass
 
@@ -79,7 +83,8 @@ func start_schedule(unit: Unit) -> void:
 		set_first_command(InteractCommand.new(resource_building))
 	else: # Go to gather resource.
 		set_first_command(InteractCommand.new(resource_spawn))
-	
+
+	_connect(unit)
 	unit.set_command(get_current_command())
 
 func set_first_command(command: InteractCommand) -> void:
@@ -90,6 +95,46 @@ func set_first_command(command: InteractCommand) -> void:
 	else: # Go straight to the gather resource.
 		schedule.append(command)
 		schedule.append(InteractCommand.new(resource_building))
+
+func _connect(unit: Unit) -> void:
+	_disconnect()
+	_unit = unit
+	if not resource_building or not resource_spawn: return
+
+	if anchor == ResourceAnchor.BUILDING:
+		resource_building.removed.connect(_on_anchor_removed)
+		resource_spawn.removed.connect(_on_derived_removed)
+	else:
+		resource_spawn.removed.connect(_on_anchor_removed)
+		resource_building.removed.connect(_on_derived_removed)
+		resource_spawn.nearby_buildings_changed.connect(_on_nearby_buildings_changed)
+
+	_connected_building = resource_building
+	_connected_spawn = resource_spawn
+
+func _disconnect() -> void:
+	if _connected_building:
+		if _connected_building.removed.is_connected(_on_anchor_removed): _connected_building.removed.disconnect(_on_anchor_removed)
+		if _connected_building.removed.is_connected(_on_derived_removed): _connected_building.removed.disconnect(_on_derived_removed)
+	if _connected_spawn:
+		if _connected_spawn.removed.is_connected(_on_anchor_removed): _connected_spawn.removed.disconnect(_on_anchor_removed)
+		if _connected_spawn.removed.is_connected(_on_derived_removed): _connected_spawn.removed.disconnect(_on_derived_removed)
+		if _connected_spawn.nearby_buildings_changed.is_connected(_on_nearby_buildings_changed): _connected_spawn.nearby_buildings_changed.disconnect(_on_nearby_buildings_changed)
+	_connected_building = null
+	_connected_spawn = null
+
+func _on_anchor_removed(_building: Building) -> void:
+	if _unit: _unit.set_job(null) # Anchor is fixed intent; without it the job cannot continue.
+
+func _on_derived_removed(_building: Building) -> void:
+	if _unit: reevaluate(_unit) # Find the derived ResourceAnchor or cancel if none remain.
+
+func _on_nearby_buildings_changed(_spawn: ResourceSpawn) -> void:
+	if _unit: reevaluate(_unit) # Optimize to the closest building; only connected for spawn anchors. 
+
+func teardown(_unit_param: Unit) -> void:
+	_disconnect()
+	_unit = null
 
 func copy() -> Gatherer:
 	var gatherer := Gatherer.new()

@@ -1,5 +1,7 @@
 class_name Building extends StaticBody3D
 
+signal removed(building: Building)
+
 @export var title: String
 @export var resource: StrategicResource # eventually update to have more than one type of resource
 var resource_limit: int = 1000
@@ -33,6 +35,10 @@ func _ready() -> void:
 # This function needs to be overriden by Node inheriting Building.
 func unit_interaction(_unit: Unit) -> void:
 	pass
+
+func remove() -> void:
+	removed.emit(self)
+	queue_free()
 
 func update_resource_totals() -> void:
 	if not resource: return

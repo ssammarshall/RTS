@@ -1,6 +1,7 @@
 class_name ResourceSpawn extends Building
 
 signal depleted(spawn: ResourceSpawn)
+signal nearby_buildings_changed(spawn: ResourceSpawn)
 
 var nearby_resource_buildings: Array[ResourceBuilding]
 
@@ -13,6 +14,16 @@ func _ready() -> void:
 	var g := job as Gatherer
 	g.anchor = Gatherer.ResourceAnchor.SPAWN
 	g.resource_spawn = self
+
+func add_nearby_building(building: ResourceBuilding) -> void:
+	if nearby_resource_buildings.has(building): return
+	nearby_resource_buildings.append(building)
+	nearby_buildings_changed.emit(self)
+
+func remove_nearby_building(building: ResourceBuilding) -> void:
+	if not nearby_resource_buildings.has(building): return
+	nearby_resource_buildings.erase(building)
+	nearby_buildings_changed.emit(self)
 
 func extract() -> int:
 	if resource.amount <= 0: return 0

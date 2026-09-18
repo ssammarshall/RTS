@@ -43,7 +43,7 @@ func _on_nearby_resources_area_exited(body: Node3D) -> void:
 func _remove_spawn(rs: ResourceSpawn) -> void:
 	if not nearby_resource_spawns.has(rs): return
 	nearby_resource_spawns.erase(rs)
-	if rs.nearby_resource_buildings.has(self): rs.nearby_resource_buildings.erase(self)
+	rs.remove_nearby_building(self)
 	if rs.depleted.is_connected(Callable(_remove_spawn)): rs.depleted.disconnect(Callable(_remove_spawn))
 
 	var g := job as Gatherer
@@ -53,7 +53,7 @@ func _remove_spawn(rs: ResourceSpawn) -> void:
 func start_construction() -> void:
 	super.start_construction()
 	for spawn in nearby_resource_spawns:
-		spawn.nearby_resource_buildings.append(self)
+		spawn.add_nearby_building(self)
 
 func deposit_resource(unit: Unit) -> void:
 	if not unit.inventory.resource: return

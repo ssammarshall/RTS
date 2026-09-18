@@ -26,7 +26,7 @@ func _on_building_remove_last() -> void:
 		var last_building: Building = buildings[size - 1]
 		if last_building.construction_complete: return # Cannot remove last on already constructed Building.
 		buildings.remove_at(size - 1)
-		last_building.queue_free()
+		last_building.remove()
 
 func _on_building_constructed(building: Building) -> void:
 	if not buildings.has(building): return

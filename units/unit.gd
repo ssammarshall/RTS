@@ -88,6 +88,7 @@ func set_group_num(num: int) -> void:
 	group_num = num
 
 func set_job(job: Job) -> void:
+	if current_job and current_job != job: current_job.teardown(self)
 	current_job = job
 	if current_job: current_job.start_schedule(self)
 
