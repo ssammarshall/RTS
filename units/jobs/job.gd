@@ -22,3 +22,6 @@ func copy() -> Job:
 
 func _update(_unit: Unit, _delta: float) -> void:
 	pass
+
+func teardown(_unit: Unit) -> void:
+	pass
