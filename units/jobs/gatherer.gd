@@ -21,7 +21,6 @@ func _update(unit: Unit, _delta: float) -> void:
 
 func reevaluate(unit: Unit) -> void:
 	if not anchor_valid():
-		printerr("Anchor invalid. Cancel job.")
 		unit.set_job(null)
 		return
 
@@ -67,9 +66,8 @@ func start_schedule(unit: Unit) -> void:
 	select_derived()
 
 	if not resource_building or not resource_spawn:
-		printerr("Cancel job. ", resource_building, resource_spawn)
 		unit.set_job(null)
-		
+
 		# Go to either the ResourceBuilding or ResourceSpawn if set.
 		if resource_building: unit.set_command(MoveCommand.new(resource_building.global_position))
 		elif resource_spawn: unit.set_command(MoveCommand.new(resource_spawn.global_position))
