@@ -6,6 +6,14 @@ var resource_spawn: ResourceSpawn
 func _init() -> void:
 	pass
 
+func _update(unit: Unit, _delta: float) -> void:
+	if resource_spawn and resource_spawn.resource.amount <= 0: # Resource depleted.
+		find_new_resource_spawn(unit)
+
+func find_new_resource_spawn(unit: Unit) -> void:
+	resource_spawn = null
+	start_schedule(unit)
+
 func start_schedule(unit: Unit) -> void:
 	super.start_schedule(unit)
 	
@@ -14,6 +22,7 @@ func start_schedule(unit: Unit) -> void:
 		var spawns := resource_building.nearby_resource_spawns
 		
 		for i in spawns.size():
+			if spawns[i].resource.amount <= 0: continue # Skip depleted spawns.
 			var dist := resource_building.global_position.distance_squared_to(spawns[i].global_position)
 			if dist < closest_distance:
 				closest_distance = dist
