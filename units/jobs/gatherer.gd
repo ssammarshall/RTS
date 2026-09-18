@@ -144,6 +144,7 @@ func _on_nearby_buildings_changed(_spawn: ResourceSpawn) -> void:
 
 func _on_deposit_blocked(_building: ResourceBuilding) -> void:
 	if not _unit: return
+	if not _unit.inventory.resource or _unit.inventory.resource.amount <= 0: return
 
 	var target := find_building_with_space()
 	if not target:
