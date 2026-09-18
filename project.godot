@@ -296,3 +296,7 @@ Backspace={
 3d_physics/layer_3="RESERVED"
 3d_physics/layer_4="BUILDING"
 3d_physics/layer_5="TERRAIN"
+
+[physics]
+
+3d/physics_engine="Jolt Physics"
