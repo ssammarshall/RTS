@@ -55,11 +55,6 @@ func assign_worker(unit: Unit) -> void:
 func give_job(unit: Unit) -> void:
 	if job: unit.set_job(job.copy())
 
-func update_resource_totals() -> void:
-	if not resource: return
-	if resource.amount > resource_limit:
-		resource.amount = resource_limit
-
 func select(value: bool) -> void:
 	selectable_object.is_selected = value
 
