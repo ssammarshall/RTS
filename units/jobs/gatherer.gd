@@ -11,38 +11,54 @@ func _init() -> void:
 
 func _update(unit: Unit, _delta: float) -> void:
 	if resource_spawn and resource_spawn.resource.amount <= 0: # Resource depleted.
-		find_new_resource_spawn(unit)
+		reevaluate(unit)
 
-func find_new_resource_spawn(unit: Unit) -> void:
-	resource_spawn = null
+func reevaluate(unit: Unit) -> void:
+	if not anchor_valid():
+		printerr("Anchor invalid. Cancel job.")
+		unit.set_job(null)
+		return
+
+	var previous_building := resource_building
+	var previous_spawn := resource_spawn
+
+	if anchor == ResourceAnchor.BUILDING: resource_spawn = null
+	else: resource_building = null
+
+	select_derived()
+
+	if resource_building == previous_building and resource_spawn == previous_spawn:
+		return
+
 	start_schedule(unit)
+
+func anchor_valid() -> bool:
+	if anchor == ResourceAnchor.BUILDING:
+		return resource_building != null
+	return resource_spawn != null and resource_spawn.resource.amount > 0 # Spawn anchor must still have resources.
+
+# Select the closest resource building or spawn based on the anchor type.
+func select_derived() -> void:
+	var closest_distance: float = INF
+	if resource_building and not resource_spawn:
+		for spawn in resource_building.nearby_resource_spawns:
+			if spawn.resource.amount <= 0: continue # Skip depleted spawns.
+			var dist := resource_building.global_position.distance_squared_to(spawn.global_position)
+			if dist < closest_distance:
+				closest_distance = dist
+				resource_spawn = spawn
+	elif resource_spawn and not resource_building:
+		for building in resource_spawn.nearby_resource_buildings:
+			var dist := resource_spawn.global_position.distance_squared_to(building.global_position)
+			if dist < closest_distance:
+				closest_distance = dist
+				resource_building = building
 
 func start_schedule(unit: Unit) -> void:
 	super.start_schedule(unit)
-	
-	var closest_distance: float = INF
-	if resource_building and not resource_spawn:
-		var spawns := resource_building.nearby_resource_spawns
-		
-		for i in spawns.size():
-			if spawns[i].resource.amount <= 0: continue # Skip depleted spawns.
-			var dist := resource_building.global_position.distance_squared_to(spawns[i].global_position)
-			if dist < closest_distance:
-				closest_distance = dist
-				resource_spawn = spawns[i]
-		if not resource_spawn:
-			printerr("No ResourceSpawn found")
-	elif resource_spawn and not resource_building:
-		var buildings := resource_spawn.nearby_resource_buildings
-		
-		for i in buildings.size():
-			var dist := resource_spawn.global_position.distance_squared_to(buildings[i].global_position)
-			if dist < closest_distance:
-				closest_distance = dist
-				resource_building = buildings[i]
-		if not resource_building:
-			printerr("No ResourceBuilding found")
-	
+
+	select_derived()
+
 	if not resource_building or not resource_spawn:
 		printerr("Cancel job. ", resource_building, resource_spawn)
 		unit.set_job(null)
