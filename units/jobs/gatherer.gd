@@ -84,6 +84,8 @@ func start_schedule(unit: Unit) -> void:
 			unit.set_job(null)
 			return
 		set_first_command(InteractCommand.new(resource_building))
+	elif unit.inventory.resource and unit.inventory.resource.amount > 0: # Deposit first.
+		set_first_command(InteractCommand.new(resource_building))
 	else: # Go to gather resource.
 		set_first_command(InteractCommand.new(resource_spawn))
 
