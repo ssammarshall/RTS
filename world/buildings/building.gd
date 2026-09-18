@@ -39,6 +39,10 @@ func unit_interaction(_unit: Unit) -> void:
 
 func remove() -> void:
 	removed.emit(self)
+	for unit in pending_workers:
+		if is_instance_valid(unit) and unit.command is InteractCommand and (unit.command as InteractCommand).target == self:
+			unit.set_command(null)
+	pending_workers.clear()
 	queue_free()
 
 func assign_worker(unit: Unit) -> void:
