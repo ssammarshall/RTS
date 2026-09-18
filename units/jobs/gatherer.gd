@@ -9,12 +9,14 @@ var resource_spawn: ResourceSpawn
 var _unit: Unit
 var _connected_building: Building
 var _connected_spawn: ResourceSpawn
+var _waiting := false
 
 func _init() -> void:
 	pass
 
 func _update(unit: Unit, _delta: float) -> void:
-	if resource_spawn and resource_spawn.resource.amount <= 0: # Resource depleted.
+	if _waiting: return
+	if resource_spawn and resource_spawn.resource.amount <= 0:
 		reevaluate(unit)
 
 func reevaluate(unit: Unit) -> void:
@@ -60,6 +62,7 @@ func select_derived() -> void:
 
 func start_schedule(unit: Unit) -> void:
 	super.start_schedule(unit)
+	_waiting = false
 
 	select_derived()
 
@@ -109,6 +112,9 @@ func _connect(unit: Unit) -> void:
 		resource_building.removed.connect(_on_derived_removed)
 		resource_spawn.nearby_buildings_changed.connect(_on_nearby_buildings_changed)
 
+	resource_building.capacity_available.connect(_on_capacity_available)
+	resource_building.deposit_blocked.connect(_on_deposit_blocked)
+
 	_connected_building = resource_building
 	_connected_spawn = resource_spawn
 
@@ -116,6 +122,10 @@ func _disconnect() -> void:
 	if _connected_building:
 		if _connected_building.removed.is_connected(_on_anchor_removed): _connected_building.removed.disconnect(_on_anchor_removed)
 		if _connected_building.removed.is_connected(_on_derived_removed): _connected_building.removed.disconnect(_on_derived_removed)
+		if _connected_building is ResourceBuilding:
+			var rb := _connected_building as ResourceBuilding
+			if rb.capacity_available.is_connected(_on_capacity_available): rb.capacity_available.disconnect(_on_capacity_available)
+			if rb.deposit_blocked.is_connected(_on_deposit_blocked): rb.deposit_blocked.disconnect(_on_deposit_blocked)
 	if _connected_spawn:
 		if _connected_spawn.removed.is_connected(_on_anchor_removed): _connected_spawn.removed.disconnect(_on_anchor_removed)
 		if _connected_spawn.removed.is_connected(_on_derived_removed): _connected_spawn.removed.disconnect(_on_derived_removed)
@@ -130,7 +140,35 @@ func _on_derived_removed(_building: Building) -> void:
 	if _unit: reevaluate(_unit) # Find the derived ResourceAnchor or cancel if none remain.
 
 func _on_nearby_buildings_changed(_spawn: ResourceSpawn) -> void:
-	if _unit: reevaluate(_unit) # Optimize to the closest building; only connected for spawn anchors. 
+	if _unit: reevaluate(_unit) # Optimize to the closest building; only connected for spawn anchors.
+
+func _on_deposit_blocked(_building: ResourceBuilding) -> void:
+	if not _unit: return
+
+	var target := find_building_with_space()
+	if not target:
+		_waiting = true
+		_unit.set_command(WaitForCapacityCommand.new())
+		return
+
+	resource_building = target
+	if anchor == ResourceAnchor.BUILDING: resource_spawn = null
+	start_schedule(_unit)
+
+func find_building_with_space() -> ResourceBuilding:
+	if not resource_spawn: return null
+	var closest: ResourceBuilding = null
+	var closest_distance: float = INF
+	for building in resource_spawn.nearby_resource_buildings:
+		if building.resource.amount >= building.resource_limit: continue
+		var dist := resource_spawn.global_position.distance_squared_to(building.global_position)
+		if dist < closest_distance:
+			closest_distance = dist
+			closest = building
+	return closest
+
+func _on_capacity_available(_building: ResourceBuilding) -> void:
+	if _waiting and _unit: start_schedule(_unit)
 
 func teardown(_unit_param: Unit) -> void:
 	_disconnect()
