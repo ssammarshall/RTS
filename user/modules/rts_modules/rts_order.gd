@@ -80,16 +80,7 @@ func set_target_building(user: User, target: Building) -> void:
 	if not user.hold_group:
 		user.get_selected_group().cancel_commands()
 	
-	if not target.construction_complete:
-		for i in user.get_selected_group().size():
-			var unit: Unit = user.get_selected_group().units[i]
-			unit.set_command(InteractCommand.new(target))
-		return
-	
-	if target.job:
-		for i in user.get_selected_group().size():
-			var unit: Unit = user.get_selected_group().units[i]
-			var job := target.job.copy()
-			unit.set_job(job)
-		return
+	for i in user.get_selected_group().size():
+		var unit: Unit = user.get_selected_group().units[i]
+		target.assign_worker(unit)
 	

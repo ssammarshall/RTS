@@ -18,6 +18,7 @@ var job: Job = null
 
 # Construction.
 var construction_complete := false
+var pending_workers: Array[Unit] = []
 
 # Preview.
 var preview_material := ShaderMaterial.new()
@@ -39,6 +40,16 @@ func unit_interaction(_unit: Unit) -> void:
 func remove() -> void:
 	removed.emit(self)
 	queue_free()
+
+func assign_worker(unit: Unit) -> void:
+	if construction_complete:
+		give_job(unit)
+	elif not pending_workers.has(unit):
+		pending_workers.append(unit)
+		unit.set_command(InteractCommand.new(self))
+
+func give_job(unit: Unit) -> void:
+	if job: unit.set_job(job.copy())
 
 func update_resource_totals() -> void:
 	if not resource: return
@@ -73,3 +84,9 @@ func start_construction() -> void:
 	set_building_collision_layer(Global.COLLISION_LAYER.WORLD, true) # Allow Building to interact with world.
 	construction_complete = true
 	SignalBus.building_constructed.emit(self)
+
+	for unit in pending_workers:
+		if not is_instance_valid(unit): continue
+		if unit.command is InteractCommand and (unit.command as InteractCommand).target == self:
+			give_job(unit)
+	pending_workers.clear()
