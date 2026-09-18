@@ -11,6 +11,7 @@ func _ready() -> void:
 	construction_complete = true # ResourceSpawns do not need to be constructed.
 	job = Gatherer.new()
 	var g := job as Gatherer
+	g.anchor = Gatherer.ResourceAnchor.SPAWN
 	g.resource_spawn = self
 
 func extract() -> int:

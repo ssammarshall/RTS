@@ -11,8 +11,9 @@ func _ready() -> void:
 	
 	job = Gatherer.new()
 	var g := job as Gatherer
+	g.anchor = Gatherer.ResourceAnchor.BUILDING
 	g.resource_building = self
-	
+
 	nearby_resources_area.set_collision_layer_value(Global.COLLISION_LAYER.WORLD, false)
 	nearby_resources_area.set_collision_mask_value(Global.COLLISION_LAYER.WORLD, false)
 	nearby_resources_area.set_collision_mask_value(Global.COLLISION_LAYER.BUILDING, true)

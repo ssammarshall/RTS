@@ -1,5 +1,8 @@
 class_name Gatherer extends Job
 
+enum ResourceAnchor { BUILDING, SPAWN }
+var anchor := ResourceAnchor.BUILDING
+
 var resource_building: ResourceBuilding
 var resource_spawn: ResourceSpawn
 
@@ -74,6 +77,7 @@ func set_first_command(command: InteractCommand) -> void:
 
 func copy() -> Gatherer:
 	var gatherer := Gatherer.new()
+	gatherer.anchor = anchor
 	gatherer.resource_building = resource_building
 	gatherer.resource_spawn = resource_spawn
 	return gatherer
