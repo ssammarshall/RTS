@@ -27,18 +27,27 @@ func _on_nearby_resources_area_entered(body: Node3D) -> void:
 	if body is ResourceSpawn:
 		var rs := body as ResourceSpawn
 		if rs.resource.type != self.resource.type: return
+		if rs.resource.amount <= 0: return
 		nearby_resource_spawns.append(rs)
+		rs.depleted.connect(Callable(_remove_spawn))
 		if nearby_resource_spawns.size() == 1: # The only nearby spawn.
 			var g := job as Gatherer
 			g.resource_spawn = rs
 
 func _on_nearby_resources_area_exited(body: Node3D) -> void:
 	body = body.owner
-	if body is ResourceSpawn and nearby_resource_spawns.has(body):
-		nearby_resource_spawns.erase(body)
-		if nearby_resource_spawns.size() == 0: # No more nearby spawns.
-			var g := job as Gatherer
-			g.resource_spawn = null
+	if body is ResourceSpawn:
+		_remove_spawn(body)
+
+func _remove_spawn(rs: ResourceSpawn) -> void:
+	if not nearby_resource_spawns.has(rs): return
+	nearby_resource_spawns.erase(rs)
+	if rs.nearby_resource_buildings.has(self): rs.nearby_resource_buildings.erase(self)
+	if rs.depleted.is_connected(Callable(_remove_spawn)): rs.depleted.disconnect(Callable(_remove_spawn))
+
+	var g := job as Gatherer
+	if g.resource_spawn == rs:
+		g.resource_spawn = nearby_resource_spawns[0] if not nearby_resource_spawns.is_empty() else null
 
 func start_construction() -> void:
 	super.start_construction()

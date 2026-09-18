@@ -1,5 +1,7 @@
 class_name ResourceSpawn extends Building
 
+signal depleted(spawn: ResourceSpawn)
+
 var nearby_resource_buildings: Array[ResourceBuilding]
 
 func _ready() -> void:
@@ -15,6 +17,7 @@ func extract() -> int:
 	if resource.amount <= 0: return 0
 	
 	resource.amount -= 1 # eventually update to have more than one type of resource
+	if resource.amount <= 0: depleted.emit(self) # Fires once, on the crossing to empty.
 	return 1
 
 func unit_interaction(unit: Unit) -> void:
