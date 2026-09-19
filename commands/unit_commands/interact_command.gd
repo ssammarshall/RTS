@@ -1,6 +1,9 @@
 class_name InteractCommand extends UnitCommand
 
+const INTERACT_INTERVAL := 1.0 / 60.0
+
 var target: Node3D
+var _elapsed: float = 0.0
 
 func _init(_target: Node3D) -> void:
 	target = _target
@@ -8,14 +11,18 @@ func _init(_target: Node3D) -> void:
 
 # Called once UnitCommand is set to active command.
 func enter(unit: Unit) -> void:
+	_elapsed = 0.0
 	if not unit.nearby_bodies.has(target): unit.path_finder.add_to_path_queue(target.global_position)
 	else: interact(unit)
 
 # Called upon to perform specific action.
-func execute(unit: Unit, _delta: float) -> void:
+func execute(unit: Unit, delta: float) -> void:
 	if not unit.nearby_bodies.has(target): return
 	
-	interact(unit)
+	_elapsed += delta
+	while _elapsed >= INTERACT_INTERVAL and unit.command == self:
+		_elapsed -= INTERACT_INTERVAL
+		interact(unit)
 
 # Called once UnitCommand is finished or changed.
 func exit(unit: Unit) -> void:
