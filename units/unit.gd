@@ -39,6 +39,8 @@ var inventory: Inventory = Inventory.new()
 
 var height: float = 2.0
 
+static var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
+
 func _ready() -> void:
 	select(false)
 	
@@ -47,7 +49,7 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	# Add the gravity.
-	if not is_on_floor(): velocity.y -= ProjectSettings.get_setting("physics/3d/default_gravity")
+	if not is_on_floor(): velocity.y -= gravity * delta
 	
 	# Add match statement for when is player controlled/AI
 	if pathing: path_finder.physics_update(delta)
