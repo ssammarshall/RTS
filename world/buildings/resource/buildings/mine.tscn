@@ -7,6 +7,7 @@
 [ext_resource type="Shader" uid="uid://okr7b764mwr0" path="res://world/buildings/building_preview.gdshader" id="4_ai1i3"]
 
 [sub_resource type="Resource" id="Resource_k7iu1"]
+resource_local_to_scene = true
 script = ExtResource("2_46xre")
 type = 3
 metadata/_custom_type_script = "uid://bnxy0ta2hvx1x"

@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://ba4xrxb1iruiy" path="res://selectable_object.gd" id="3_pelp6"]
 
 [sub_resource type="Resource" id="Resource_r0s6x"]
+resource_local_to_scene = true
 script = ExtResource("2_tn26p")
 type = 3
 amount = 1000
