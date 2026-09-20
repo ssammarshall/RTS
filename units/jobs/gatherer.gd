@@ -133,17 +133,20 @@ func _disconnect() -> void:
 	_connected_building = null
 	_connected_spawn = null
 
+func _unit_active() -> bool:
+	return is_instance_valid(_unit) and _unit.is_inside_tree()
+
 func _on_anchor_removed(_building: Building) -> void:
-	if _unit: _unit.set_job(null) # Anchor is fixed intent; without it the job cannot continue.
+	if _unit_active(): _unit.set_job(null) # Anchor is fixed intent; without it the job cannot continue.
 
 func _on_derived_removed(_building: Building) -> void:
-	if _unit: reevaluate(_unit) # Find the derived ResourceAnchor or cancel if none remain.
+	if _unit_active(): reevaluate(_unit) # Find the derived ResourceAnchor or cancel if none remain.
 
 func _on_nearby_buildings_changed(_spawn: ResourceSpawn) -> void:
-	if _unit: reevaluate(_unit) # Optimize to the closest building; only connected for spawn anchors.
+	if _unit_active(): reevaluate(_unit) # Optimize to the closest building; only connected for spawn anchors.
 
 func _on_deposit_blocked(_building: ResourceBuilding) -> void:
-	if not _unit: return
+	if not _unit_active(): return
 	if not _unit.inventory.resource or _unit.inventory.resource.amount <= 0: return
 
 	var target := find_building_with_space()
@@ -169,7 +172,7 @@ func find_building_with_space() -> ResourceBuilding:
 	return closest
 
 func _on_capacity_available(_building: ResourceBuilding) -> void:
-	if _waiting and _unit: start_schedule(_unit)
+	if _waiting and _unit_active(): start_schedule(_unit)
 
 func teardown(_unit_param: Unit) -> void:
 	_disconnect()
