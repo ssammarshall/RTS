@@ -12,6 +12,8 @@ var _tiles: Array[NavigationRegion3D] = []
 var _grid_cols: int = 0
 var _grid_rows: int = 0
 var _map_aabb: AABB
+var _baking := {}
+var _rebake := {}
 
 # Parse terrain_root's static geometry and build/bake the tile grid.
 # Call once at startup.
@@ -89,11 +91,22 @@ func _tile_aabb(col: int, row: int) -> AABB:
 # Bake a single tile off-thread from the cached source geometry (+ obstructions),
 # then hand the finished mesh to the NavigationServer for that region.
 func _bake_tile(index: int) -> void:
+	if _baking.has(index): # Queue one re-bake so the obstruction added meanwhile is carved out.
+		_rebake[index] = true
+		return
+
+	_baking[index] = true
 	var region := _tiles[index]
 	var mesh: NavigationMesh = region.navigation_mesh
 	NavigationServer3D.bake_from_source_geometry_data_async(
 		mesh, _base_source,
-		func() -> void: NavigationServer3D.region_set_navigation_mesh(region.get_rid(), mesh))
+		func() -> void: _on_tile_baked(index, region, mesh))
+
+func _on_tile_baked(index: int, region: NavigationRegion3D, mesh: NavigationMesh) -> void:
+	_baking.erase(index)
+	if not is_instance_valid(region): return
+	NavigationServer3D.region_set_navigation_mesh(region.get_rid(), mesh)
+	if _rebake.erase(index): _bake_tile(index)
 
 # Carve a Building's solid collision shape into the shared source geometry.
 # Returns the world-space footprint outline carved, or empty on failure.
