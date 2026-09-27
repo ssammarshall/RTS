@@ -24,6 +24,7 @@ run/max_fps=240
 Util="*res://autoload/util.gd"
 SignalBus="*res://autoload/signal_bus.gd"
 Global="*res://autoload/global.gd"
+Scheduler="*res://autoload/scheduler.gd"
 
 [debug]
 
