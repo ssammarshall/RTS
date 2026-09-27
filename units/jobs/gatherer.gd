@@ -6,18 +6,33 @@ var anchor := ResourceAnchor.BUILDING
 var resource_building: ResourceBuilding
 var resource_spawn: ResourceSpawn
 
+enum Replan { REEVALUATE = 1, SPAWN_DEPLETED = 2, DEPOSIT_BLOCKED = 4, CAPACITY_AVAILABLE = 8 }
+
 var _unit: Unit
 var _connected_building: Building
 var _connected_spawn: ResourceSpawn
 var _waiting := false
+var _replan := 0
 
 func _init() -> void:
 	pass
 
 func think(unit: Unit, _delta: float) -> void:
-	if _waiting: return
-	if resource_spawn and resource_spawn.resource.amount <= 0:
+	if _replan == 0: return
+	var replan := _replan
+	_replan = 0
+
+	if _waiting:
+		if replan & Replan.CAPACITY_AVAILABLE: start_schedule(unit)
+	elif replan & Replan.DEPOSIT_BLOCKED:
+		_handle_deposit_blocked(unit)
+	if unit.current_job != self: return
+
+	if replan & Replan.REEVALUATE:
 		reevaluate(unit)
+	elif replan & Replan.SPAWN_DEPLETED:
+		if _waiting: _replan |= Replan.SPAWN_DEPLETED # Re-plan once the unit is working again.
+		else: reevaluate(unit)
 
 func reevaluate(unit: Unit) -> void:
 	if not anchor_valid():
@@ -112,6 +127,7 @@ func _connect(unit: Unit) -> void:
 		resource_building.removed.connect(_on_derived_removed)
 		resource_spawn.nearby_buildings_changed.connect(_on_nearby_buildings_changed)
 
+	resource_spawn.depleted.connect(_on_spawn_depleted)
 	resource_building.capacity_available.connect(_on_capacity_available)
 	resource_building.deposit_blocked.connect(_on_deposit_blocked)
 
@@ -130,6 +146,7 @@ func _disconnect() -> void:
 		if _connected_spawn.removed.is_connected(_on_anchor_removed): _connected_spawn.removed.disconnect(_on_anchor_removed)
 		if _connected_spawn.removed.is_connected(_on_derived_removed): _connected_spawn.removed.disconnect(_on_derived_removed)
 		if _connected_spawn.nearby_buildings_changed.is_connected(_on_nearby_buildings_changed): _connected_spawn.nearby_buildings_changed.disconnect(_on_nearby_buildings_changed)
+		if _connected_spawn.depleted.is_connected(_on_spawn_depleted): _connected_spawn.depleted.disconnect(_on_spawn_depleted)
 	_connected_building = null
 	_connected_spawn = null
 
@@ -143,21 +160,36 @@ func _on_derived_removed(_building: Building) -> void:
 	if _unit_active(): reevaluate(_unit) # Find the derived ResourceAnchor or cancel if none remain.
 
 func _on_nearby_buildings_changed(_spawn: ResourceSpawn) -> void:
-	if _unit_active(): reevaluate(_unit) # Optimize to the closest building; only connected for spawn anchors.
+	_request(Replan.REEVALUATE) # Optimize to the closest building; only connected for spawn anchors.
 
-func _on_deposit_blocked(_building: ResourceBuilding) -> void:
-	if not _unit_active(): return
-	if not _unit.inventory.resource or _unit.inventory.resource.amount <= 0: return
+func _on_spawn_depleted(_spawn: ResourceSpawn) -> void:
+	_request(Replan.SPAWN_DEPLETED)
 
+# A unit delivering to this building right now is handled at once; its command is about to finish.
+func _on_deposit_blocked(building: ResourceBuilding) -> void:
+	if not _unit_active() or not _carrying(_unit): return
+	if _unit.command is InteractCommand and (_unit.command as InteractCommand).target == building: _handle_deposit_blocked(_unit)
+	else: _request(Replan.DEPOSIT_BLOCKED)
+
+func _handle_deposit_blocked(unit: Unit) -> void:
+	if not _carrying(unit): return
 	var target := find_building_with_space()
 	if not target:
 		_waiting = true
-		_unit.set_command(WaitForCapacityCommand.new())
+		unit.set_command(WaitForCapacityCommand.new())
 		return
 
 	resource_building = target
 	if anchor == ResourceAnchor.BUILDING: resource_spawn = null
-	start_schedule(_unit)
+	start_schedule(unit)
+
+func _carrying(unit: Unit) -> bool:
+	return unit.inventory.resource != null and unit.inventory.resource.amount > 0
+
+func _request(replan: Replan) -> void:
+	if not _unit_active(): return
+	_replan |= replan
+	_unit.wake()
 
 func find_building_with_space() -> ResourceBuilding:
 	if not resource_spawn: return null
@@ -172,11 +204,12 @@ func find_building_with_space() -> ResourceBuilding:
 	return closest
 
 func _on_capacity_available(_building: ResourceBuilding) -> void:
-	if _waiting and _unit_active(): start_schedule(_unit)
+	if _waiting: _request(Replan.CAPACITY_AVAILABLE)
 
 func teardown(_unit_param: Unit) -> void:
 	_disconnect()
 	_unit = null
+	_replan = 0
 
 func copy() -> Gatherer:
 	var gatherer := Gatherer.new()

@@ -18,6 +18,9 @@ func enter(unit: Unit) -> void:
 
 # The first think at the target interacts once; after that, once per INTERACT_INTERVAL of elapsed time.
 func think(unit: Unit, delta: float) -> void:
+	if not is_instance_valid(target):
+		finished.emit()
+		return
 	if not unit.nearby_bodies.has(target):
 		_arrived = false
 		return

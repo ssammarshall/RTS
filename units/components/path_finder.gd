@@ -75,7 +75,7 @@ func _query_path() -> void:
 	var path := NavigationServer3D.map_get_path(_map, unit.global_position, target, true)
 	if path.is_empty(): return # Map not synced yet: keep walking straight, the next think asks again.
 	_path = path
-	_index = mini(1, path.size() - 1)
+	_index = 0
 	_needs_path = false
 	_map_iteration = NavigationServer3D.map_get_iteration_id(_map)
 
