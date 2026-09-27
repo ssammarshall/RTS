@@ -20,7 +20,7 @@ func copy() -> Job:
 	var job := Job.new()
 	return job
 
-func _update(_unit: Unit, _delta: float) -> void:
+func think(_unit: Unit, _delta: float) -> void:
 	pass
 
 func teardown(_unit: Unit) -> void:

@@ -14,7 +14,7 @@ var _waiting := false
 func _init() -> void:
 	pass
 
-func _update(unit: Unit, _delta: float) -> void:
+func think(unit: Unit, _delta: float) -> void:
 	if _waiting: return
 	if resource_spawn and resource_spawn.resource.amount <= 0:
 		reevaluate(unit)

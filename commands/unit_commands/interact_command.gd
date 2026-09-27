@@ -4,6 +4,7 @@ const INTERACT_INTERVAL := 1.0 / 60.0
 
 var target: Node3D
 var _elapsed: float = 0.0
+var _arrived := false
 
 func _init(_target: Node3D) -> void:
 	target = _target
@@ -12,17 +13,33 @@ func _init(_target: Node3D) -> void:
 # Called once UnitCommand is set to active command.
 func enter(unit: Unit) -> void:
 	_elapsed = 0.0
+	_arrived = false
 	if not unit.nearby_bodies.has(target): unit.path_finder.add_to_path_queue(target.global_position)
-	else: interact(unit)
 
-# Called upon to perform specific action.
-func execute(unit: Unit, delta: float) -> void:
-	if not unit.nearby_bodies.has(target): return
-	
-	_elapsed += delta
+# The first think at the target interacts once; after that, once per INTERACT_INTERVAL of elapsed time.
+func think(unit: Unit, delta: float) -> void:
+	if not unit.nearby_bodies.has(target):
+		_arrived = false
+		return
+	if _arrived:
+		_elapsed += delta
+	else:
+		_arrived = true
+		_elapsed = INTERACT_INTERVAL
 	while _elapsed >= INTERACT_INTERVAL and unit.command == self:
 		_elapsed -= INTERACT_INTERVAL
 		interact(unit)
+
+# While gathering, think again when the load is full (the last interaction finishes the command).
+func next_think(unit: Unit) -> float:
+	if not _arrived: return INF
+	var remaining := 1
+	if target is ResourceSpawn and unit.inventory.resource:
+		remaining = maxi(unit.inventory.resource_limit - unit.inventory.resource.amount, 1)
+	return remaining * INTERACT_INTERVAL - _elapsed
+
+func on_nearby_entered(unit: Unit, node: Node3D) -> void:
+	if node == target: unit.wake()
 
 # Called once UnitCommand is finished or changed.
 func exit(unit: Unit) -> void:
