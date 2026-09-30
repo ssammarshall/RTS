@@ -1,25 +1,50 @@
 extends Node
-# Unit registry and simulation detail levels. A round robin over the registry compares each unit with the camera:
+# Unit registry, simulation detail levels and spawning. A round robin over the registry compares each unit with the camera:
 # Full in view within FULL_DISTANCE, Reduced in view further out or off screen within NEAR_DISTANCE, Dormant otherwise.
-# Promotions happen at once, demotions after DEMOTE_DELAY; both stop for the tick once the transition budget is used.
+# Promotions happen at once, demotions after DEMOTE_DELAY. Spawns are queued and reuse released units of the same scene.
+# Each tick, transitions and then spawns stop once budget_usec is used; at least one spawn runs per tick.
 
 const CHECKS_PER_TICK := 200
 const FULL_DISTANCE := 80.0
 const NEAR_DISTANCE := 120.0
 const DEMOTE_DELAY := 1.0
 
-var transition_budget_usec := 1000
+var budget_usec := 1000
 
 # Stats for the harness.
 var busy_usec := 0
 var transitions := 0
+var spawn_usec := 0
+var spawned := 0
+var reused := 0
 
 var units: Array[Unit] = []
 var _demote_at := PackedInt64Array() # Tick from which the unit may drop a level; -1 while it wants its current one.
 var _next := 0
+var _spawns: Array[Callable] = []
+var _spawn_head := 0
+var _pool := {} # Scene path -> released units of that scene.
 
 func _ready() -> void:
 	process_physics_priority = -999
+
+func _exit_tree() -> void:
+	for pool: Array in _pool.values():
+		for unit: Unit in pool: unit.free()
+	_pool.clear()
+
+# Adds a unit of `scene` under `parent` at `position` within the next ticks; `on_spawned` gets it once it's in the tree.
+func spawn(scene: PackedScene, parent: Node, position: Vector3, on_spawned := Callable()) -> void:
+	_spawns.append(_spawn.bind(scene, parent, position, on_spawned))
+
+func pending_spawns() -> int:
+	return _spawns.size() - _spawn_head
+
+# Takes the unit out of the tree and keeps it for the next spawn of its scene. Take it out of its groups first.
+func release(unit: Unit) -> void:
+	unit.reset()
+	unit.get_parent().remove_child(unit)
+	_pool.get_or_add(unit.scene_file_path, []).append(unit)
 
 # A new unit starts at its level: registering happens before its body and area enter the physics space.
 func register(unit: Unit) -> void:
@@ -46,8 +71,13 @@ func counts() -> PackedInt32Array:
 	return result
 
 func _physics_process(_delta: float) -> void:
+	var used := _update_details()
+	if _spawn_head < _spawns.size(): _run_spawns(budget_usec - used)
+
+# Returns the time spent on transitions.
+func _update_details() -> int:
 	var camera := get_viewport().get_camera_3d()
-	if units.is_empty() or not camera: return
+	if units.is_empty() or not camera: return 0
 	var start := Time.get_ticks_usec()
 	var eye := camera.global_position
 	var transition_usec := 0
@@ -60,7 +90,7 @@ func _physics_process(_delta: float) -> void:
 			_demote_at[_next] = -1
 		elif wanted > unit.detail and _demote_at[_next] < 0:
 			_demote_at[_next] = Scheduler.tick + demote_ticks
-		elif transition_usec < transition_budget_usec and (wanted < unit.detail or Scheduler.tick >= _demote_at[_next]):
+		elif transition_usec < budget_usec and (wanted < unit.detail or Scheduler.tick >= _demote_at[_next]):
 			var t := Time.get_ticks_usec()
 			unit.set_detail(wanted)
 			transition_usec += Time.get_ticks_usec() - t
@@ -68,6 +98,33 @@ func _physics_process(_delta: float) -> void:
 			_demote_at[_next] = -1
 		_next += 1
 	busy_usec += Time.get_ticks_usec() - start
+	return transition_usec
+
+func _run_spawns(budget: int) -> void:
+	var start := Time.get_ticks_usec()
+	while _spawn_head < _spawns.size():
+		var request := _spawns[_spawn_head]
+		_spawns[_spawn_head] = Callable()
+		_spawn_head += 1
+		request.call()
+		if Time.get_ticks_usec() - start >= budget: break
+	if _spawn_head == _spawns.size():
+		_spawns.clear()
+		_spawn_head = 0
+	spawn_usec += Time.get_ticks_usec() - start
+
+func _spawn(scene: PackedScene, parent: Node, position: Vector3, on_spawned: Callable) -> void:
+	if not is_instance_valid(parent): return
+	var pool: Array = _pool.get(scene.resource_path, [])
+	var unit: Unit
+	if pool.is_empty(): unit = scene.instantiate()
+	else:
+		unit = pool.pop_back()
+		reused += 1
+	unit.transform = Transform3D(Basis.IDENTITY, position)
+	parent.add_child(unit)
+	spawned += 1
+	if on_spawned.is_valid(): on_spawned.call(unit)
 
 func _wanted_detail(pos: Vector3, camera: Camera3D, eye: Vector3) -> Unit.Detail:
 	var distance := pos.distance_squared_to(eye)

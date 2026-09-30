@@ -183,6 +183,20 @@ func create_unit_card(index: int) -> UnitCard:
 
 	return unit_card
 
+# Back to a new unit's state, for reuse through Units.release.
+func reset() -> void:
+	set_job(null)
+	clear_commands()
+	path_finder.end_pathing()
+	nearby_bodies.clear()
+	inventory.unequip(self)
+	inventory = Inventory.new()
+	velocity = Vector3.ZERO
+	_avoidance_moving = false
+	NavigationServer3D.agent_set_velocity(avoidance_agent.get_rid(), Vector3.ZERO)
+	select(false)
+	group_num = -1
+
 func set_group_num(num: int) -> void:
 	group_num = num
 

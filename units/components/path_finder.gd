@@ -2,6 +2,7 @@ class_name PathFinder extends RefCounted
 
 const WAYPOINT_REACHED := 1.0
 const JOIN_DISTANCE := 3.0
+const ARRIVAL_DEPTH := 0.1 # A Dormant unit arrives this far inside its reach, so its area overlaps the target once promoted.
 
 static var queries := 0
 static var legs := 0
@@ -114,7 +115,7 @@ func _find_arrival() -> void:
 	_arrival_point = _path[_path.size() - 1] + lift if not _path.is_empty() else pos
 	for i in range(_index, _path.size()):
 		var point := _path[i] + lift
-		var reach := _reach.reach_along(pos, point, unit.reach) if is_instance_valid(_reach) else -1.0
+		var reach := _reach.reach_along(pos, point, unit.reach - ARRIVAL_DEPTH) if is_instance_valid(_reach) else -1.0
 		if reach >= 0.0:
 			_arrival_index = i
 			_arrival_point = pos.lerp(point, reach)
