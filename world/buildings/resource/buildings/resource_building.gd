@@ -34,8 +34,10 @@ func _on_nearby_resources_area_entered(body: Node3D) -> void:
 		var rs := body as ResourceSpawn
 		if rs.resource.type != self.resource.type: return
 		if rs.resource.amount <= 0: return
+		if nearby_resource_spawns.has(rs): return
 		nearby_resource_spawns.append(rs)
 		rs.depleted.connect(Callable(_remove_spawn))
+		if construction_complete: rs.add_nearby_building(self) # A spawn that comes (back) into range after construction.
 		if nearby_resource_spawns.size() == 1: # The only nearby spawn.
 			var g := job as Gatherer
 			g.resource_spawn = rs
