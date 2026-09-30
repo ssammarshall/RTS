@@ -23,6 +23,9 @@ var pending_workers: Array[Unit] = []
 # Preview.
 var preview_material := ShaderMaterial.new()
 
+var _reach_inverse: Transform3D # Placed buildings don't move, so the area's frame is cached on first use.
+var _reach_half := Vector2.ZERO
+
 func _ready() -> void:
 	select(false)
 	
@@ -66,6 +69,29 @@ func display_building_preview(display: bool) -> void:
 	else:
 		mesh.show()
 		preview_mesh.hide()
+
+# How far along a move from `a` to `b` (0 to 1) a unit with an interaction area of `radius` first touches this
+# building's area, on the ground plane; 0 if it already does, -1 if it doesn't on the way.
+func reach_along(a: Vector3, b: Vector3, radius: float) -> float:
+	if _reach_half == Vector2.ZERO:
+		var box := building_area_collision_shape.shape as BoxShape3D
+		if not box: return -1.0
+		_reach_inverse = building_area_collision_shape.global_transform.affine_inverse()
+		_reach_half = Vector2(box.size.x, box.size.z) * 0.5
+	var local_a := _reach_inverse * a
+	var local_b := _reach_inverse * b
+	var x := _slab(local_a.x, local_b.x, _reach_half.x + radius)
+	var z := _slab(local_a.z, local_b.z, _reach_half.y + radius)
+	var enter := maxf(x.x, z.x)
+	return enter if enter <= minf(x.y, z.y) else -1.0
+
+# The part of a move from `a` to `b` (as fractions 0 to 1) that lies within -half..half on one axis; empty if enter > leave.
+static func _slab(a: float, b: float, half: float) -> Vector2:
+	var d := b - a
+	if is_zero_approx(d): return Vector2(0.0, 1.0) if absf(a) <= half else Vector2(1.0, 0.0)
+	var t0 := (-half - a) / d
+	var t1 := (half - a) / d
+	return Vector2(maxf(minf(t0, t1), 0.0), minf(maxf(t0, t1), 1.0))
 
 func get_item_type() -> ItemData.Type:
 	return item_data.type if item_data else ItemData.Type.NONE

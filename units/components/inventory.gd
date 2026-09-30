@@ -34,11 +34,9 @@ func unequip(unit: Unit) -> void:
 		equipped_item.queue_free()
 		equipped_item = null
 
-func use_item(unit: Unit) -> bool:
-	if not equipped_item: return false
-	
-	var item_used := equipped_item.use()
+# Uses the equipped item up to `times` times and returns the uses made; a worn-out item is unequipped.
+func use_item(unit: Unit, times := 1) -> int:
+	if not equipped_item: return 0
+	var used := equipped_item.use(times)
 	if equipped_item.durability <= 0: unequip(unit)
-	
-	if item_used: return true
-	else: return false
+	return used

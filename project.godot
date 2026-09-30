@@ -25,6 +25,7 @@ Util="*res://autoload/util.gd"
 SignalBus="*res://autoload/signal_bus.gd"
 Global="*res://autoload/global.gd"
 Scheduler="*res://autoload/scheduler.gd"
+Units="*res://autoload/units.gd"
 
 [debug]
 

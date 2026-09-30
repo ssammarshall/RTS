@@ -18,16 +18,20 @@ var _queue: Array[Vector3] = []
 var _needs_path := false
 var _query_pending := false
 var _route := "" # RouteCache key of this leg, empty for one-off legs.
+var _reach: Building # The leg's target: a Dormant unit arrives where its interaction area would touch it.
 var _waiting_for := "" # RouteCache key this finder waits on.
 var _map := RID()
 var _map_iteration := -1
+var _jump_tick := 0
+var _arrival_index := -1
+var _arrival_point := Vector3.ZERO
 
 func _init(owner_unit: Unit) -> void:
 	unit = owner_unit
 
 # `route` shares the leg's path through RouteCache; the unit has to be standing at the route's from node.
-func add_to_path_queue(pos: Vector3, route := "") -> void:
-	if not unit.pathing: _start_leg(pos, route)
+func add_to_path_queue(pos: Vector3, route := "", reach: Building = null) -> void:
+	if not unit.pathing: _start_leg(pos, route, reach)
 	elif not _queue.has(pos): _queue.append(pos)
 
 func end_pathing() -> void:
@@ -35,8 +39,10 @@ func end_pathing() -> void:
 	_queue.clear()
 	_path = PackedVector3Array()
 	_index = 0
+	_arrival_index = -1
 	_needs_path = false
 	_route = ""
+	_reach = null
 	desired_velocity = Vector3.ZERO
 	unit.pathing = false
 	unit.wake()
@@ -60,6 +66,66 @@ func steer() -> void:
 	desired_velocity = Vector3(dir.x, 0.0, dir.y) * unit.current_speed
 	desired_yaw = atan2(-dir.x, -dir.y)
 
+func start_jumping() -> void:
+	_jump_tick = Scheduler.tick
+	_arrival_index = -1
+
+# A Dormant unit moves as far along its path as it would have walked since the last jump.
+func jump() -> void:
+	var distance := (Scheduler.tick - _jump_tick) * unit.current_speed / Engine.physics_ticks_per_second
+	_jump_tick = Scheduler.tick
+	if distance <= 0.0: return
+	if _arrival_index < 0: _find_arrival()
+	unit.nearby_bodies.clear()
+	var pos := unit.global_position
+	var lift := Vector3.UP * unit.height * 0.5
+	while true:
+		var point := _arrival_point if _index >= _arrival_index else _path[_index] + lift
+		var step := Vector2(point.x - pos.x, point.z - pos.z).length()
+		if step > distance:
+			unit.global_position = pos.lerp(point, distance / step)
+			return
+		distance -= step
+		pos = point
+		if _index >= _arrival_index: break
+		_index += 1
+	unit.global_position = pos
+	_arrive()
+
+# Seconds until a Dormant unit arrives, capped at `limit`, so its next jump lands on arrival.
+func time_to_arrival(limit: float) -> float:
+	if _arrival_index < 0: _find_arrival()
+	var pos := unit.global_position
+	var lift := Vector3.UP * unit.height * 0.5
+	var distance := 0.0
+	for i in range(_index, _arrival_index):
+		var point := _path[i] + lift
+		distance += Vector2(point.x - pos.x, point.z - pos.z).length()
+		pos = point
+	distance += Vector2(_arrival_point.x - pos.x, _arrival_point.z - pos.z).length()
+	return minf(distance / unit.current_speed, limit)
+
+# Where a Dormant unit arrives: where its interaction area would first touch the leg's target, or the end of the path.
+# Found once per path: the unit walks the points before _arrival_index, then to _arrival_point.
+func _find_arrival() -> void:
+	var pos := unit.global_position
+	var lift := Vector3.UP * unit.height * 0.5
+	_arrival_index = maxi(_path.size() - 1, _index)
+	_arrival_point = _path[_path.size() - 1] + lift if not _path.is_empty() else pos
+	for i in range(_index, _path.size()):
+		var point := _path[i] + lift
+		var reach := _reach.reach_along(pos, point, unit.reach) if is_instance_valid(_reach) else -1.0
+		if reach >= 0.0:
+			_arrival_index = i
+			_arrival_point = pos.lerp(point, reach)
+			return
+		pos = point
+
+func _arrive() -> void:
+	if is_instance_valid(_reach) and not unit.nearby_bodies.has(_reach): unit.nearby_bodies.append(_reach)
+	_index = _path.size()
+	_finish_leg()
+
 func is_active() -> bool:
 	return is_instance_valid(unit) and unit.pathing and unit.is_inside_tree()
 
@@ -69,13 +135,16 @@ func take_route(route_key: String, route: PackedVector3Array) -> void:
 	if not _join(route): _request_path()
 
 # Until its path query has run, the unit walks straight at the target.
-func _start_leg(pos: Vector3, route := "") -> void:
+func _start_leg(pos: Vector3, route := "", reach: Building = null) -> void:
 	if unit.pathing and _needs_path: straight_legs += 1
 	legs += 1
 	target = pos
 	_path = PackedVector3Array([pos])
 	_index = 0
+	_arrival_index = -1
 	_route = route
+	_reach = reach
+	_jump_tick = Scheduler.tick
 	unit.pathing = true
 	_request_path(true)
 	unit.wake()
@@ -115,6 +184,7 @@ func _join(route: PackedVector3Array) -> bool:
 	if index < 0: return false
 	_path = route
 	_index = index
+	_arrival_index = -1
 	_needs_path = false
 	_map_iteration = NavigationServer3D.map_get_iteration_id(_map)
 	return true
@@ -128,6 +198,7 @@ func _query_path() -> void:
 	if path.is_empty(): return # Map not synced yet: keep walking straight, the next think asks again.
 	_path = path
 	_index = 0
+	_arrival_index = -1
 	_needs_path = false
 	_map_iteration = NavigationServer3D.map_get_iteration_id(map)
 

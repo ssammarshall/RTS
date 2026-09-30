@@ -2,6 +2,11 @@ class_name Unit extends CharacterBody3D
 
 # Longest a pathing unit goes without thinking, so a navigation map change is picked up.
 const FALLBACK_THINK := 1.0
+const DORMANT_JUMP := 2.0 # Longest a Dormant unit goes between jumps along its path.
+const MAX_THINK_PASSES := 3
+const SNAP_RAY := 50.0
+
+enum Detail { FULL, REDUCED, DORMANT }
 
 # Nodes.
 @onready var interaction_area: Area3D = $Area3D
@@ -12,6 +17,8 @@ const FALLBACK_THINK := 1.0
 @export var flock_agent: FlockAgent
 var path_finder: PathFinder
 var think_task: ThinkTask
+var detail := Detail.FULL
+var registry_index := -1
 
 # Jobs.
 var current_job: Job
@@ -43,10 +50,13 @@ var pathing: bool = false
 var inventory: Inventory = Inventory.new()
 
 var height: float = 2.0
+var reach := 1.5 # Radius of the interaction area.
 
 static var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 var _avoidance_moving := false
+var _thinking := false
+var _rethink := false
 
 func _init() -> void:
 	path_finder = PathFinder.new(self)
@@ -54,17 +64,21 @@ func _init() -> void:
 func _ready() -> void:
 	select(false)
 
+	var area_shape := (interaction_area.get_child(0) as CollisionShape3D).shape as CylinderShape3D
+	if area_shape: reach = area_shape.radius
 	interaction_area.area_entered.connect(Callable(_on_interaction_area_entered))
 	interaction_area.area_exited.connect(Callable(_on_interaction_area_exited))
 	avoidance_agent.velocity_computed.connect(Callable(_on_velocity_computed))
 
 func _enter_tree() -> void:
 	think_task = Scheduler.add(think, INF)
+	Units.register(self)
 	if command or pathing: wake()
 
 func _exit_tree() -> void:
 	Scheduler.remove(think_task)
 	think_task = null
+	Units.unregister(self)
 
 func _physics_process(delta: float) -> void:
 	steer(delta)
@@ -84,17 +98,57 @@ func steer(delta: float) -> void:
 	if desired != Vector3.ZERO: rotation.y = lerp_angle(rotation.y, path_finder.desired_yaw, minf(turn_speed * delta, 1.0))
 	if not is_on_floor(): velocity.y -= gravity * delta
 
+# A wake during the think (a leg ended, a command finished) runs another pass now instead of a think next tick.
 func think(delta: float) -> void:
-	path_finder.think()
-	if current_job: current_job.think(self, delta)
-	if command: command.think(self, delta)
+	_thinking = true
+	for i in MAX_THINK_PASSES:
+		_rethink = false
+		if detail == Detail.DORMANT and pathing: path_finder.jump()
+		path_finder.think()
+		if current_job: current_job.think(self, delta)
+		if command: command.think(self, delta)
+		delta = 0.0
+		if not _rethink: break
+	_thinking = false
+	if _rethink: wake()
 	if not think_task or think_task.is_scheduled(): return
 	var next := command.next_think(self) if command else INF
-	if pathing: next = minf(next, FALLBACK_THINK)
+	if pathing: next = minf(next, path_finder.time_to_arrival(DORMANT_JUMP) if detail == Detail.DORMANT else FALLBACK_THINK)
 	Scheduler.schedule_in(think_task, next)
 
 func wake() -> void:
-	if think_task: Scheduler.wake(think_task)
+	if _thinking: _rethink = true
+	elif think_task: Scheduler.wake(think_task)
+
+# Reduced behaves like Full until Phase 2 gives it a cheaper mover.
+func set_detail(level: Detail) -> void:
+	if level == detail: return
+	var was_dormant := detail == Detail.DORMANT
+	detail = level
+	if level == Detail.DORMANT: _park()
+	elif was_dormant: _unpark()
+
+# Dormant units leave the physics space (body, area and avoidance) and jump along their path on think.
+# nearby_bodies keeps what the unit stood at; jumping away clears it and arriving adds the leg's target.
+func _park() -> void:
+	var near := nearby_bodies.duplicate()
+	process_mode = PROCESS_MODE_DISABLED
+	nearby_bodies = near
+	NavigationServer3D.agent_set_paused(avoidance_agent.get_rid(), true) # A unit that enters the tree parked isn't paused by the agent itself.
+	path_finder.start_jumping()
+
+func _unpark() -> void:
+	if pathing: path_finder.jump()
+	nearby_bodies.clear() # The area refills it on the next physics step.
+	_snap_to_ground()
+	NavigationServer3D.agent_set_paused(avoidance_agent.get_rid(), false)
+	process_mode = PROCESS_MODE_INHERIT
+
+func _snap_to_ground() -> void:
+	var query := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * SNAP_RAY, global_position + Vector3.DOWN * SNAP_RAY,
+		1 << (Global.COLLISION_LAYER.TERRAIN - 1))
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if hit: global_position.y = hit.position.y + height * 0.5
 
 func _on_velocity_computed(safe_velocity: Vector3) -> void:
 	var horizontal := Vector3(safe_velocity.x, 0.0, safe_velocity.z)

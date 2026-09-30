@@ -7,7 +7,8 @@ var durability: int
 func get_item_type() -> ItemData.Type:
 	return data.type if data else ItemData.Type.NONE
 
-func use() -> bool:
-	if durability <= 0: return false
-	durability -= 1
-	return true
+# Uses the item up to `times` times; returns how many uses its durability allowed.
+func use(times := 1) -> int:
+	var used := clampi(durability, 0, times)
+	durability -= used
+	return used
