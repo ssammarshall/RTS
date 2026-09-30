@@ -72,6 +72,7 @@ func display_building_preview(display: bool) -> void:
 
 # How far along a move from `a` to `b` (0 to 1) a unit with an interaction area of `radius` first touches this
 # building's area, on the ground plane; 0 if it already does, -1 if it doesn't on the way.
+# The area's box grown by the radius has rounded corners; the box grown square is a cheap first check.
 func reach_along(a: Vector3, b: Vector3, radius: float) -> float:
 	if _reach_half == Vector2.ZERO:
 		var box := building_area_collision_shape.shape as BoxShape3D
@@ -80,10 +81,32 @@ func reach_along(a: Vector3, b: Vector3, radius: float) -> float:
 		_reach_half = Vector2(box.size.x, box.size.z) * 0.5
 	var local_a := _reach_inverse * a
 	var local_b := _reach_inverse * b
-	var x := _slab(local_a.x, local_b.x, _reach_half.x + radius)
-	var z := _slab(local_a.z, local_b.z, _reach_half.y + radius)
+	var p := Vector2(local_a.x, local_a.z)
+	var d := Vector2(local_b.x - local_a.x, local_b.z - local_a.z)
+	var h := _reach_half
+	if is_inf(_box_entry(p, d, h + Vector2(radius, radius))): return -1.0
+	var enter := minf(_box_entry(p, d, h + Vector2(radius, 0.0)), _box_entry(p, d, h + Vector2(0.0, radius)))
+	for corner in [h, -h, Vector2(h.x, -h.y), Vector2(-h.x, h.y)]:
+		enter = minf(enter, _circle_entry(p - corner, d, radius))
+	return enter if is_finite(enter) else -1.0
+
+# The fraction of the move p → p + d at which it enters the box -half..half, or INF if it doesn't.
+static func _box_entry(p: Vector2, d: Vector2, half: Vector2) -> float:
+	var x := _slab(p.x, p.x + d.x, half.x)
+	var z := _slab(p.y, p.y + d.y, half.y)
 	var enter := maxf(x.x, z.x)
-	return enter if enter <= minf(x.y, z.y) else -1.0
+	return enter if enter <= minf(x.y, z.y) else INF
+
+# The fraction of the move p → p + d at which it comes within radius of the origin, or INF if it doesn't.
+static func _circle_entry(p: Vector2, d: Vector2, radius: float) -> float:
+	var c := p.length_squared() - radius * radius
+	if c <= 0.0: return 0.0
+	var a := d.length_squared()
+	var b := p.dot(d)
+	var discriminant := b * b - a * c
+	if a == 0.0 or discriminant < 0.0: return INF
+	var t := (-b - sqrt(discriminant)) / a
+	return t if t >= 0.0 and t <= 1.0 else INF
 
 # The part of a move from `a` to `b` (as fractions 0 to 1) that lies within -half..half on one axis; empty if enter > leave.
 static func _slab(a: float, b: float, half: float) -> Vector2:
