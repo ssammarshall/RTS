@@ -108,8 +108,9 @@ func _on_tile_baked(index: int, region: NavigationRegion3D, mesh: NavigationMesh
 	NavigationServer3D.region_set_navigation_mesh(region.get_rid(), mesh)
 	if _rebake.erase(index): _bake_tile(index)
 
-# Carve a Building's solid collision shape into the shared source geometry.
-# Returns the world-space footprint outline carved, or empty on failure.
+# Add a Building's solid collision shape to the shared source geometry as an obstruction. It isn't a carve, so the bake
+# widens it by the agent radius and paths keep a unit's width from the walls.
+# Returns the world-space footprint outline, or empty on failure.
 func _add_obstruction(building: Building) -> PackedVector3Array:
 	var points := _collision_world_points(building)
 	if points.size() < 3: return PackedVector3Array()
@@ -125,7 +126,7 @@ func _add_obstruction(building: Building) -> PackedVector3Array:
 
 	var elevation := min_y - carve_height_margin
 	var height := (max_y - min_y) + carve_height_margin * 2.0
-	_base_source.add_projected_obstruction(footprint, elevation, height, true)
+	_base_source.add_projected_obstruction(footprint, elevation, height, false)
 	return footprint
 
 # World-space vertices of a Building's collision shape.
