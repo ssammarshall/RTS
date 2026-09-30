@@ -107,12 +107,11 @@ func start_schedule(unit: Unit) -> void:
 
 func set_first_command(command: InteractCommand) -> void:
 	schedule.clear()
-	if command.target is ResourceBuilding: # Equip item first, then gather resource.
-		schedule.append(command)
-		schedule.append(InteractCommand.new(resource_spawn))
-	else: # Go straight to the gather resource.
-		schedule.append(command)
-		schedule.append(InteractCommand.new(resource_building))
+	var other: Node3D = resource_building
+	if command.target is ResourceBuilding: other = resource_spawn # Equip item or deposit first, then gather.
+	command.from = other
+	schedule.append(command)
+	schedule.append(InteractCommand.new(other, command.target))
 
 func _connect(unit: Unit) -> void:
 	_disconnect()

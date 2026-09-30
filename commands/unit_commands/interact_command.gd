@@ -3,18 +3,22 @@ class_name InteractCommand extends UnitCommand
 const INTERACT_INTERVAL := 1.0 / 60.0
 
 var target: Node3D
+var from: Node3D
 var _elapsed: float = 0.0
 var _arrived := false
 
-func _init(_target: Node3D) -> void:
+func _init(_target: Node3D, _from: Node3D = null) -> void:
 	target = _target
+	from = _from
 	assert(target != null)
 
 # Called once UnitCommand is set to active command.
 func enter(unit: Unit) -> void:
 	_elapsed = 0.0
 	_arrived = false
-	if not unit.nearby_bodies.has(target): unit.path_finder.add_to_path_queue(target.global_position)
+	if unit.nearby_bodies.has(target): return
+	var route := RouteCache.key(from, target) if is_instance_valid(from) and unit.nearby_bodies.has(from) else ""
+	unit.path_finder.add_to_path_queue(target.global_position, route)
 
 # The first think at the target interacts once; after that, once per INTERACT_INTERVAL of elapsed time.
 func think(unit: Unit, delta: float) -> void:
