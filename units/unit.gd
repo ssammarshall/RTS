@@ -19,6 +19,7 @@ var path_finder: PathFinder
 var think_task: ThinkTask
 var detail := Detail.FULL
 var registry_index := -1
+var acting_index := -1
 
 # Jobs.
 var current_job: Job
@@ -80,7 +81,8 @@ func _exit_tree() -> void:
 	think_task = null
 	Units.unregister(self)
 
-func _physics_process(delta: float) -> void:
+# Called every tick by Units while the unit isn't Dormant.
+func act(delta: float) -> void:
 	steer(delta)
 	#flock_agent.physics_update(delta)
 	if is_on_floor() and velocity.x == 0.0 and velocity.z == 0.0: return

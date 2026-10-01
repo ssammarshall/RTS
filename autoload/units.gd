@@ -1,8 +1,9 @@
 extends Node
-# Unit registry, simulation detail levels and spawning. A round robin over the registry compares each unit with the camera:
+# Unit registry, simulation detail levels, spawning and the act step. A round robin over the registry compares each unit with the camera:
 # Full in view within FULL_DISTANCE, Reduced in view further out or off screen within NEAR_DISTANCE, Dormant otherwise.
 # Promotions happen at once, demotions after DEMOTE_DELAY. Spawns are queued and reuse released units of the same scene.
 # Each tick, transitions and then spawns stop once budget_usec is used; at least one spawn runs per tick.
+# Then every unit that isn't Dormant acts (steers and moves), from one loop.
 
 const CHECKS_PER_TICK := 200
 const FULL_DISTANCE := 80.0
@@ -10,6 +11,8 @@ const NEAR_DISTANCE := 120.0
 const DEMOTE_DELAY := 1.0
 
 var budget_usec := 1000
+var detail_enabled := true
+var act_enabled := true # Off while the harness runs and times the act step itself.
 
 # Stats for the harness.
 var busy_usec := 0
@@ -19,6 +22,7 @@ var spawned := 0
 var reused := 0
 
 var units: Array[Unit] = []
+var acting: Array[Unit] = [] # The units that aren't Dormant.
 var _demote_at := PackedInt64Array() # Tick from which the unit may drop a level; -1 while it wants its current one.
 var _next := 0
 var _spawns: Array[Callable] = []
@@ -52,7 +56,8 @@ func register(unit: Unit) -> void:
 	units.append(unit)
 	_demote_at.append(-1)
 	var camera := get_viewport().get_camera_3d()
-	if camera and is_physics_processing(): unit.set_detail(_wanted_detail(unit.global_position, camera, camera.global_position))
+	if camera and detail_enabled: unit.set_detail(_wanted_detail(unit.global_position, camera, camera.global_position))
+	_update_acting(unit)
 
 func unregister(unit: Unit) -> void:
 	var index := unit.registry_index
@@ -63,6 +68,7 @@ func unregister(unit: Unit) -> void:
 	units.resize(last)
 	_demote_at.resize(last)
 	unit.registry_index = -1
+	if unit.acting_index >= 0: _remove_acting(unit)
 
 # Units per detail level, indexed by Unit.Detail.
 func counts() -> PackedInt32Array:
@@ -70,9 +76,26 @@ func counts() -> PackedInt32Array:
 	for unit in units: result[unit.detail] += 1
 	return result
 
-func _physics_process(_delta: float) -> void:
-	var used := _update_details()
+func _physics_process(delta: float) -> void:
+	var used := _update_details() if detail_enabled else 0
 	if _spawn_head < _spawns.size(): _run_spawns(budget_usec - used)
+	if act_enabled:
+		for unit in acting: unit.act(delta)
+
+func _update_acting(unit: Unit) -> void:
+	var acts := unit.detail != Unit.Detail.DORMANT
+	if acts == (unit.acting_index >= 0): return
+	if acts:
+		unit.acting_index = acting.size()
+		acting.append(unit)
+	else: _remove_acting(unit)
+
+func _remove_acting(unit: Unit) -> void:
+	var last := acting[acting.size() - 1]
+	acting[unit.acting_index] = last
+	last.acting_index = unit.acting_index
+	acting.resize(acting.size() - 1)
+	unit.acting_index = -1
 
 # Returns the time spent on transitions.
 func _update_details() -> int:
@@ -93,6 +116,7 @@ func _update_details() -> int:
 		elif transition_usec < budget_usec and (wanted < unit.detail or Scheduler.tick >= _demote_at[_next]):
 			var t := Time.get_ticks_usec()
 			unit.set_detail(wanted)
+			_update_acting(unit)
 			transition_usec += Time.get_ticks_usec() - t
 			transitions += 1
 			_demote_at[_next] = -1
