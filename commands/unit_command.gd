@@ -14,10 +14,6 @@ func think(_unit: Unit, _delta: float) -> void:
 func next_think(_unit: Unit) -> float:
 	return INF
 
-# Called when a node enters the Unit's interaction area.
-func on_nearby_entered(_unit: Unit, _node: Node3D) -> void:
-	pass
-
 # Called once UnitCommand is finished or changed.
 func exit(_unit: Unit) -> void:
 	pass

@@ -2,7 +2,9 @@ class_name PathFinder extends RefCounted
 
 const WAYPOINT_REACHED := 1.0
 const JOIN_DISTANCE := 3.0
-const ARRIVAL_DEPTH := 0.1 # A Dormant unit arrives this far inside its reach, so its area overlaps the target once promoted.
+const ARRIVAL_DEPTH := 0.1 # The arrival point is this far inside the unit's reach rather than on its edge.
+const ARRIVAL_REACHED := 0.5 # A walking unit whose reach never touches the target stops this close to the path's end.
+const ARRIVAL_NEAR := 3.0 # Within this of the arrival point a walking unit checks its reach every tick (it cuts corners).
 
 static var queries := 0
 static var legs := 0
@@ -19,13 +21,14 @@ var _queue: Array[Vector3] = []
 var _needs_path := false
 var _query_pending := false
 var _route := "" # RouteCache key of this leg, empty for one-off legs.
-var _reach: Building # The leg's target: a Dormant unit arrives where its interaction area would touch it.
+var _reach: Building # The leg's target: the leg ends where the unit's reach first touches it.
 var _waiting_for := "" # RouteCache key this finder waits on.
 var _map := RID()
 var _map_iteration := -1
 var _jump_tick := 0
 var _arrival_index := -1
 var _arrival_point := Vector3.ZERO
+var _arrival_touches := false # Whether the unit's reach touches the target on the way, at _arrival_point.
 
 func _init(owner_unit: Unit) -> void:
 	unit = owner_unit
@@ -53,16 +56,30 @@ func think() -> void:
 	if _needs_path or (_map.is_valid() and NavigationServer3D.map_get_iteration_id(_map) != _map_iteration):
 		_request_path()
 
+# A leg with a target ends once the unit's reach touches it, on the way to _arrival_point.
 func steer() -> void:
 	var pos := unit.global_position
-	while _index < _path.size():
+	var reach_leg := is_instance_valid(_reach)
+	if reach_leg and _arrival_index < 0: _find_arrival()
+	var followed := _arrival_index if reach_leg else _path.size()
+	while _index < followed:
 		var point := _path[_index]
 		if Vector2(point.x - pos.x, point.z - pos.z).length_squared() > WAYPOINT_REACHED * WAYPOINT_REACHED: break
 		_index += 1
-	if _index >= _path.size():
+	var next: Vector3
+	if reach_leg:
+		var heading := _index >= followed
+		var to_arrival := Vector2(_arrival_point.x - pos.x, _arrival_point.z - pos.z).length_squared()
+		if (heading or to_arrival <= ARRIVAL_NEAR * ARRIVAL_NEAR) and _reach.in_reach(pos, unit.reach) \
+				or heading and not _arrival_touches and to_arrival <= ARRIVAL_REACHED * ARRIVAL_REACHED:
+			_arrive()
+			return
+		next = _arrival_point if heading else _path[_index]
+	elif _index < followed:
+		next = _path[_index]
+	else:
 		_finish_leg()
 		return
-	var next := _path[_index]
 	var dir := Vector2(next.x - pos.x, next.z - pos.z).normalized()
 	desired_velocity = Vector3(dir.x, 0.0, dir.y) * unit.current_speed
 	desired_yaw = atan2(-dir.x, -dir.y)
@@ -77,7 +94,6 @@ func jump() -> void:
 	_jump_tick = Scheduler.tick
 	if distance <= 0.0: return
 	if _arrival_index < 0: _find_arrival()
-	unit.nearby_bodies.clear()
 	var pos := unit.global_position
 	var lift := Vector3.UP * unit.height * 0.5
 	while true:
@@ -106,24 +122,25 @@ func time_to_arrival(limit: float) -> float:
 	distance += Vector2(_arrival_point.x - pos.x, _arrival_point.z - pos.z).length()
 	return minf(distance / unit.current_speed, limit)
 
-# Where a Dormant unit arrives: where its interaction area would first touch the leg's target, or the end of the path.
-# Found once per path: the unit walks the points before _arrival_index, then to _arrival_point.
+# Where the unit arrives: where its reach would first touch the leg's target, or the end of the path. Found once per
+# path: walking or jumping, the unit follows the points before _arrival_index, then goes to _arrival_point.
 func _find_arrival() -> void:
 	var pos := unit.global_position
 	var lift := Vector3.UP * unit.height * 0.5
 	_arrival_index = maxi(_path.size() - 1, _index)
 	_arrival_point = _path[_path.size() - 1] + lift if not _path.is_empty() else pos
+	_arrival_touches = false
 	for i in range(_index, _path.size()):
 		var point := _path[i] + lift
 		var reach := _reach.reach_along(pos, point, unit.reach - ARRIVAL_DEPTH) if is_instance_valid(_reach) else -1.0
 		if reach >= 0.0:
 			_arrival_index = i
 			_arrival_point = pos.lerp(point, reach)
+			_arrival_touches = true
 			return
 		pos = point
 
 func _arrive() -> void:
-	if is_instance_valid(_reach) and not unit.nearby_bodies.has(_reach): unit.nearby_bodies.append(_reach)
 	_index = _path.size()
 	_finish_leg()
 

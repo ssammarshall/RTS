@@ -34,8 +34,6 @@ var group_num: int = -1
 var command: UnitCommand
 var command_queue: Array[UnitCommand]
 
-var nearby_bodies: Array[Node3D]
-
 # Pathing used with PathFinder.
 var pathing: bool = false
 
@@ -68,8 +66,6 @@ func _ready() -> void:
 
 	var area_shape := (interaction_area.get_child(0) as CollisionShape3D).shape as CylinderShape3D
 	if area_shape: reach = area_shape.radius
-	interaction_area.area_entered.connect(Callable(_on_interaction_area_entered))
-	interaction_area.area_exited.connect(Callable(_on_interaction_area_exited))
 	avoidance_agent.velocity_computed.connect(Callable(_on_velocity_computed))
 
 func _enter_tree() -> void:
@@ -134,17 +130,13 @@ func set_detail(level: Detail) -> void:
 	elif was_dormant: _unpark()
 
 # Dormant units leave the physics space (body, area and avoidance) and jump along their path on think.
-# nearby_bodies keeps what the unit stood at; jumping away clears it and arriving adds the leg's target.
 func _park() -> void:
-	var near := nearby_bodies.duplicate()
 	process_mode = PROCESS_MODE_DISABLED
-	nearby_bodies = near
 	NavigationServer3D.agent_set_paused(avoidance_agent.get_rid(), true) # A unit that enters the tree parked isn't paused by the agent itself.
 	path_finder.start_jumping()
 
 func _unpark() -> void:
 	if pathing: path_finder.jump()
-	nearby_bodies.clear() # The area refills it on the next physics step.
 	_snap_to_ground()
 	NavigationServer3D.agent_set_paused(avoidance_agent.get_rid(), false)
 	process_mode = PROCESS_MODE_INHERIT
@@ -164,17 +156,11 @@ func _on_velocity_computed(safe_velocity: Vector3) -> void:
 func _on_command_finished() -> void:
 	set_command(null)
 
-# Keep track of all nearby Node3Ds in interaction_area and append to nearby_bodies array.
-func _on_interaction_area_entered(body: Node3D) -> void:
-	var node: Node3D = body.get_parent()
-	nearby_bodies.append(node)
-	if command: command.on_nearby_entered(self, node)
-
-# Remove all Node3Ds from nearby_bodies array that leave interaction_area.
-func _on_interaction_area_exited(body: Node3D) -> void:
-	var node: Node3D = body.get_parent()
-	if nearby_bodies.has(node):
-		nearby_bodies.erase(node)
+# Whether the unit's reach touches `node`: a building's area, or else its position. `slack` extends the reach.
+func is_at(node: Node3D, slack := 0.0) -> bool:
+	if node is Building: return (node as Building).in_reach(global_position, reach + slack)
+	var to := node.global_position - global_position
+	return Vector2(to.x, to.z).length() <= reach + slack
 
 # Select Unit and emit selected signal.
 func select(value: bool) -> void:
@@ -193,7 +179,6 @@ func reset() -> void:
 	set_job(null)
 	clear_commands()
 	path_finder.end_pathing()
-	nearby_bodies.clear()
 	inventory.unequip(self)
 	inventory = Inventory.new()
 	velocity = Vector3.ZERO

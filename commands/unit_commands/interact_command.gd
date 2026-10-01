@@ -1,6 +1,7 @@
 class_name InteractCommand extends UnitCommand
 
 const INTERACT_INTERVAL := 1.0 / 60.0
+const REACH_SLACK := 0.5 # How far a unit can be pushed out of its reach and still count as at its target.
 
 var target: Node3D
 var from: Node3D
@@ -17,19 +18,22 @@ func _init(_target: Node3D, _from: Node3D = null) -> void:
 func enter(unit: Unit) -> void:
 	_elapsed = 0.0
 	_arrived = false
-	if unit.nearby_bodies.has(target): return
+	if unit.is_at(target, REACH_SLACK): return
 	var route := ""
-	if is_instance_valid(from) and unit.nearby_bodies.has(from):
+	if is_instance_valid(from) and unit.is_at(from, REACH_SLACK):
 		if _route_key.is_empty(): _route_key = RouteCache.key(from, target)
 		route = _route_key
 	unit.path_finder.add_to_path_queue(target.global_position, route, target as Building)
 
 # The first think at the target interacts once; after that, once per INTERACT_INTERVAL of elapsed time.
+# A unit walking there waits for its leg to end; one pushed away from its target walks back.
 func think(unit: Unit, delta: float) -> void:
 	if not is_instance_valid(target):
 		finished.emit()
 		return
-	if not unit.nearby_bodies.has(target):
+	if unit.pathing: return
+	if not unit.is_at(target, REACH_SLACK):
+		if _arrived: unit.path_finder.add_to_path_queue(target.global_position, "", target as Building)
 		_arrived = false
 		return
 	if _arrived:
@@ -49,9 +53,6 @@ func next_think(unit: Unit) -> float:
 	if target is ResourceSpawn and unit.inventory.resource:
 		remaining = maxi(unit.inventory.resource_limit - unit.inventory.resource.amount, 0) + 1
 	return remaining * INTERACT_INTERVAL - _elapsed
-
-func on_nearby_entered(unit: Unit, node: Node3D) -> void:
-	if node == target: unit.wake()
 
 # Called once UnitCommand is finished or changed.
 func exit(unit: Unit) -> void:

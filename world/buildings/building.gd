@@ -86,15 +86,19 @@ func display_building_preview(display: bool) -> void:
 		mesh.show()
 		preview_mesh.hide()
 
+# Whether a unit at `pos` with an interaction area of `radius` touches this building's area, on the ground plane.
+func in_reach(pos: Vector3, radius: float) -> bool:
+	if not _cache_reach(): return false
+	var local := _reach_inverse * pos
+	var dx := maxf(absf(local.x) - _reach_half.x, 0.0)
+	var dz := maxf(absf(local.z) - _reach_half.y, 0.0)
+	return dx * dx + dz * dz <= radius * radius
+
 # How far along a move from `a` to `b` (0 to 1) a unit with an interaction area of `radius` first touches this
 # building's area, on the ground plane; 0 if it already does, -1 if it doesn't on the way.
 # The area's box grown by the radius has rounded corners; the box grown square is a cheap first check.
 func reach_along(a: Vector3, b: Vector3, radius: float) -> float:
-	if _reach_half == Vector2.ZERO:
-		var box := building_area_collision_shape.shape as BoxShape3D
-		if not box: return -1.0
-		_reach_inverse = building_area_collision_shape.global_transform.affine_inverse()
-		_reach_half = Vector2(box.size.x, box.size.z) * 0.5
+	if not _cache_reach(): return -1.0
 	var local_a := _reach_inverse * a
 	var local_b := _reach_inverse * b
 	var p := Vector2(local_a.x, local_a.z)
@@ -105,6 +109,14 @@ func reach_along(a: Vector3, b: Vector3, radius: float) -> float:
 	for corner in [h, -h, Vector2(h.x, -h.y), Vector2(-h.x, h.y)]:
 		enter = minf(enter, _circle_entry(p - corner, d, radius))
 	return enter if is_finite(enter) else -1.0
+
+func _cache_reach() -> bool:
+	if _reach_half != Vector2.ZERO: return true
+	var box := building_area_collision_shape.shape as BoxShape3D
+	if not box: return false
+	_reach_inverse = building_area_collision_shape.global_transform.affine_inverse()
+	_reach_half = Vector2(box.size.x, box.size.z) * 0.5
+	return true
 
 # The fraction of the move p → p + d at which it enters the box -half..half, or INF if it doesn't.
 static func _box_entry(p: Vector2, d: Vector2, half: Vector2) -> float:
