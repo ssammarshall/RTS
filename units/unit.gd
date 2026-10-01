@@ -20,6 +20,7 @@ var think_task: ThinkTask
 var detail := Detail.FULL
 var registry_index := -1
 var acting_index := -1
+var grid_handle := -1
 
 # Jobs.
 var current_job: Job
@@ -105,7 +106,9 @@ func think(delta: float) -> void:
 	_thinking = true
 	for i in MAX_THINK_PASSES:
 		_rethink = false
-		if detail == Detail.DORMANT and pathing: path_finder.jump()
+		if detail == Detail.DORMANT and pathing:
+			path_finder.jump()
+			Units.moved(self)
 		path_finder.think()
 		if current_job: current_job.think(self, delta)
 		if command: command.think(self, delta)

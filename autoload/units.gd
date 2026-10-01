@@ -3,12 +3,13 @@ extends Node
 # Full in view within FULL_DISTANCE, Reduced in view further out or off screen within NEAR_DISTANCE, Dormant otherwise.
 # Promotions happen at once, demotions after DEMOTE_DELAY. Spawns are queued and reuse released units of the same scene.
 # Each tick, transitions and then spawns stop once budget_usec is used; at least one spawn runs per tick.
-# Then every unit that isn't Dormant acts (steers and moves), from one loop.
+# Then every unit that isn't Dormant acts (steers and moves), from one loop. Every unit is in `grid` at its last position.
 
 const CHECKS_PER_TICK := 200
 const FULL_DISTANCE := 80.0
 const NEAR_DISTANCE := 120.0
 const DEMOTE_DELAY := 1.0
+const GRID_CELL := 8.0
 
 var budget_usec := 1000
 var detail_enabled := true
@@ -23,6 +24,7 @@ var reused := 0
 
 var units: Array[Unit] = []
 var acting: Array[Unit] = [] # The units that aren't Dormant.
+var grid := SpatialGrid.new(GRID_CELL)
 var _demote_at := PackedInt64Array() # Tick from which the unit may drop a level; -1 while it wants its current one.
 var _next := 0
 var _spawns: Array[Callable] = []
@@ -55,8 +57,10 @@ func register(unit: Unit) -> void:
 	unit.registry_index = units.size()
 	units.append(unit)
 	_demote_at.append(-1)
+	var pos := unit.global_position
+	unit.grid_handle = grid.insert(unit, Vector2(pos.x, pos.z))
 	var camera := get_viewport().get_camera_3d()
-	if camera and detail_enabled: unit.set_detail(_wanted_detail(unit.global_position, camera, camera.global_position))
+	if camera and detail_enabled: unit.set_detail(_wanted_detail(pos, camera, camera.global_position))
 	_update_acting(unit)
 
 func unregister(unit: Unit) -> void:
@@ -69,6 +73,13 @@ func unregister(unit: Unit) -> void:
 	_demote_at.resize(last)
 	unit.registry_index = -1
 	if unit.acting_index >= 0: _remove_acting(unit)
+	grid.remove(unit.grid_handle)
+	unit.grid_handle = -1
+
+# Re-files a unit moved outside the act loop.
+func moved(unit: Unit) -> void:
+	var pos := unit.global_position
+	grid.move(unit.grid_handle, Vector2(pos.x, pos.z))
 
 # Units per detail level, indexed by Unit.Detail.
 func counts() -> PackedInt32Array:
@@ -80,7 +91,10 @@ func _physics_process(delta: float) -> void:
 	var used := _update_details() if detail_enabled else 0
 	if _spawn_head < _spawns.size(): _run_spawns(budget_usec - used)
 	if act_enabled:
-		for unit in acting: unit.act(delta)
+		for unit in acting:
+			unit.act(delta)
+			var pos := unit.global_position
+			grid.move(unit.grid_handle, Vector2(pos.x, pos.z))
 
 func _update_acting(unit: Unit) -> void:
 	var acts := unit.detail != Unit.Detail.DORMANT
