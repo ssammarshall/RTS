@@ -105,7 +105,7 @@ func check_building_placement(user: User) -> bool:
 	
 	if building is ResourceBuilding:
 		var rb := building as ResourceBuilding
-		if rb.nearby_resource_spawns.size() == 0:
+		if rb.spawns_in_range().is_empty():
 			rb.set_preview_color(Global.YELLOW_TRANSPARENT)
 		else:
 			rb.set_preview_color(Global.GREEN_TRANSPARENT)

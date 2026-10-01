@@ -15,6 +15,19 @@ func _ready() -> void:
 	g.anchor = Gatherer.ResourceAnchor.SPAWN
 	g.resource_spawn = self
 
+# Resource buildings already on the map link this spawn if it's in their range.
+func _enter_tree() -> void:
+	super._enter_tree()
+	if grid_handle < 0: return
+	for building in buildings_near(ResourceBuilding.RESOURCE_RANGE):
+		if building is ResourceBuilding: (building as ResourceBuilding).add_spawn(self)
+
+func _exit_tree() -> void:
+	if grid_handle >= 0:
+		for building in buildings_near(ResourceBuilding.RESOURCE_RANGE):
+			if building is ResourceBuilding: (building as ResourceBuilding).remove_spawn(self)
+	super._exit_tree()
+
 func add_nearby_building(building: ResourceBuilding) -> void:
 	if nearby_resource_buildings.has(building): return
 	nearby_resource_buildings.append(building)

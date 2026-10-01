@@ -2,11 +2,23 @@ class_name Map extends Node3D
 
 ## Owns the building list and delegates navigation to its [NavGrid] component,
 ## which carves placed buildings out of a tiled navigation mesh.
+## Every [Building] under the map is in [member building_grid]; placement previews aren't under it.
+
+const BUILDING_CELL := 32.0
+
+static var current: Map
 
 @export var nav_grid: NavGrid
 @export var terrain_root: Node3D
 
 var buildings: Array[Building] = []
+var building_grid := SpatialGrid.new(BUILDING_CELL)
+
+func _enter_tree() -> void:
+	current = self
+
+func _exit_tree() -> void:
+	if current == self: current = null
 
 func _ready() -> void:
 	SignalBus.building_placed.connect(Callable(_on_building_placed))

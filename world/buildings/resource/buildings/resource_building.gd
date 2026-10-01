@@ -2,56 +2,56 @@ class_name ResourceBuilding extends Building
 
 enum DepositResult { DEPOSITED, PARTIAL, FULL }
 
+const RESOURCE_RANGE := 50.0 # Spawns of the building's resource within this distance (centre to centre) are gathered from.
+
 signal deposit_blocked(building: ResourceBuilding)
 signal capacity_available(building: ResourceBuilding)
 
-@export var nearby_resources_area: Area3D
-@export var nearby_resources_area_collision_shape: CollisionShape3D
-
 var nearby_resource_spawns: Array[ResourceSpawn]
 
-func _ready() -> void:
-	super._ready()
-	assert(resource != null)
-	
+# The job has to exist before the building first enters the tree, where it links its spawns.
+func _init() -> void:
 	job = Gatherer.new()
 	var g := job as Gatherer
 	g.anchor = Gatherer.ResourceAnchor.BUILDING
 	g.resource_building = self
 
-	nearby_resources_area.set_collision_layer_value(Global.COLLISION_LAYER.WORLD, false)
-	nearby_resources_area.set_collision_mask_value(Global.COLLISION_LAYER.WORLD, false)
-	nearby_resources_area.set_collision_mask_value(Global.COLLISION_LAYER.BUILDING, true)
-	
-	nearby_resources_area.area_entered.connect(Callable(_on_nearby_resources_area_entered))
-	nearby_resources_area.area_exited.connect(Callable(_on_nearby_resources_area_exited))
+func _ready() -> void:
+	super._ready()
+	assert(resource != null)
 
+# Spawns already on the map are linked here; spawns added later link themselves.
+func _enter_tree() -> void:
+	super._enter_tree()
+	if grid_handle < 0: return
+	for spawn in spawns_in_range(): add_spawn(spawn)
 
-func _on_nearby_resources_area_entered(body: Node3D) -> void:
-	body = body.owner
-	if body == self: return
-	if body is ResourceSpawn:
-		var rs := body as ResourceSpawn
-		if rs.resource.type != self.resource.type: return
-		if rs.resource.amount <= 0: return
-		if nearby_resource_spawns.has(rs): return
-		nearby_resource_spawns.append(rs)
-		rs.depleted.connect(Callable(_remove_spawn))
-		if construction_complete: rs.add_nearby_building(self) # A spawn that comes (back) into range after construction.
-		if nearby_resource_spawns.size() == 1: # The only nearby spawn.
-			var g := job as Gatherer
-			g.resource_spawn = rs
+func _exit_tree() -> void:
+	for spawn in nearby_resource_spawns.duplicate(): remove_spawn(spawn)
+	super._exit_tree()
 
-func _on_nearby_resources_area_exited(body: Node3D) -> void:
-	body = body.owner
-	if body is ResourceSpawn:
-		_remove_spawn(body)
+# Spawns of this building's resource with some left, within RESOURCE_RANGE.
+func spawns_in_range() -> Array[ResourceSpawn]:
+	var spawns: Array[ResourceSpawn] = []
+	for building in buildings_near(RESOURCE_RANGE):
+		var rs := building as ResourceSpawn
+		if rs and rs.resource.type == resource.type and rs.resource.amount > 0: spawns.append(rs)
+	return spawns
 
-func _remove_spawn(rs: ResourceSpawn) -> void:
+func add_spawn(rs: ResourceSpawn) -> void:
+	if rs.resource.type != resource.type or rs.resource.amount <= 0 or nearby_resource_spawns.has(rs): return
+	nearby_resource_spawns.append(rs)
+	rs.depleted.connect(Callable(remove_spawn))
+	if construction_complete: rs.add_nearby_building(self)
+	if nearby_resource_spawns.size() == 1: # The only nearby spawn.
+		var g := job as Gatherer
+		g.resource_spawn = rs
+
+func remove_spawn(rs: ResourceSpawn) -> void:
 	if not nearby_resource_spawns.has(rs): return
 	nearby_resource_spawns.erase(rs)
 	rs.remove_nearby_building(self)
-	if rs.depleted.is_connected(Callable(_remove_spawn)): rs.depleted.disconnect(Callable(_remove_spawn))
+	if rs.depleted.is_connected(Callable(remove_spawn)): rs.depleted.disconnect(Callable(remove_spawn))
 
 	var g := job as Gatherer
 	if g.resource_spawn == rs:

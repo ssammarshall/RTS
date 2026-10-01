@@ -23,8 +23,24 @@ var pending_workers: Array[Unit] = []
 # Preview.
 var preview_material := ShaderMaterial.new()
 
+var grid_handle := -1 # In the map's building_grid while the building is under the map.
+var _map: Map
 var _reach_inverse: Transform3D # Placed buildings don't move, so the area's frame is cached on first use.
 var _reach_half := Vector2.ZERO
+
+static var _found: Array = []
+
+func _enter_tree() -> void:
+	var map := Map.current
+	if not map or not map.is_ancestor_of(self): return
+	_map = map
+	grid_handle = map.building_grid.insert(self, Vector2(global_position.x, global_position.z))
+
+func _exit_tree() -> void:
+	if grid_handle < 0: return
+	_map.building_grid.remove(grid_handle)
+	grid_handle = -1
+	_map = null
 
 func _ready() -> void:
 	select(false)
@@ -115,6 +131,16 @@ static func _slab(a: float, b: float, half: float) -> Vector2:
 	var t0 := (-half - a) / d
 	var t1 := (half - a) / d
 	return Vector2(maxf(minf(t0, t1), 0.0), minf(maxf(t0, t1), 1.0))
+
+# The map's other buildings within `radius` of this one, on the ground plane.
+func buildings_near(radius: float) -> Array[Building]:
+	var near: Array[Building] = []
+	var map := _map if _map else Map.current
+	if not map: return near
+	map.building_grid.query_circle(Vector2(global_position.x, global_position.z), radius, _found)
+	for building: Building in _found:
+		if building != self: near.append(building)
+	return near
 
 func get_item_type() -> ItemData.Type:
 	return item_data.type if item_data else ItemData.Type.NONE
