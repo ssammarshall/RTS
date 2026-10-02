@@ -1,4 +1,4 @@
-class_name Unit extends CharacterBody3D
+class_name Unit extends Node3D
 
 # Longest a pathing unit goes without thinking, so a navigation map change is picked up.
 const FALLBACK_THINK := 1.0
@@ -7,6 +7,9 @@ const MAX_THINK_PASSES := 3
 const MAX_BEND := 0.75 # How far separation can turn a walking unit, against its heading of length 1.
 const STEP_ASIDE_SPEED := 4.0 # A standing unit's speed when pushed all the way.
 const PUSH_DEAD_ZONE := 0.1 # A standing unit ignores a smaller push, so a settled crowd stands still.
+const GROUND_MARGIN := 0.15 # A Full unit this close above the heightmap is on the ground.
+const STOPPED_SPEED := 0.1 # A standing Full unit slower than this puts its body to sleep.
+const ACCELERATION := 400.0 # And braking, of a Full unit's body: about a tick and a half to full speed, so it keeps pace with units without a body.
 
 enum Detail { FULL, REDUCED, DORMANT }
 
@@ -14,10 +17,11 @@ enum Detail { FULL, REDUCED, DORMANT }
 @export var selectable: SelectableObject
 var path_finder: PathFinder
 var think_task: ThinkTask
-var detail := Detail.FULL
+var detail := Detail.REDUCED # No body until Units sets the unit's level.
 var registry_index := -1
 var acting_index := -1
 var grid_handle := -1
+var body: RigidBody3D # From the Units pool while the unit is Full.
 
 # Jobs.
 var current_job: Job
@@ -50,11 +54,17 @@ var height: float = 2.0
 var radius := 0.5 # Of the body's capsule.
 var reach := 1.5 # How close the unit has to be to a building's area to interact with it.
 var push := Vector2.ZERO # Away from the unit's neighbours, from Units.
+var velocity := Vector3.ZERO
 
-static var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
+static var _controller := UnitController.new()
 
+var _yaw := 0.0
 var _thinking := false
 var _rethink := false
+
+static func _static_init() -> void:
+	_controller.acceleration = ACCELERATION
+	_controller.braking = ACCELERATION
 
 func _init() -> void:
 	path_finder = PathFinder.new(self)
@@ -64,34 +74,69 @@ func _ready() -> void:
 
 func _enter_tree() -> void:
 	think_task = Scheduler.add(think, INF)
+	_snap_to_ground()
 	Units.register(self)
 	if command or pathing: wake()
 
 func _exit_tree() -> void:
 	Scheduler.remove(think_task)
 	think_task = null
+	if body:
+		_detach_body()
+		detail = Detail.REDUCED
 	Units.unregister(self)
 
 # Called every tick by Units while the unit isn't Dormant.
-func act(delta: float) -> void:
-	steer(delta)
-	if is_on_floor() and velocity.x == 0.0 and velocity.z == 0.0: return
-	move_and_slide()
+func act(delta: float, heightmap: Heightmap) -> void:
+	if body: _act_full(delta, heightmap)
+	else: _act_reduced(delta, heightmap)
 
-# A walking unit keeps its speed and bends away from its neighbours; a standing one steps aside.
-func steer(delta: float) -> void:
+# The unit follows its body, and drives the body toward the steered velocity. A standing unit's body sleeps.
+func _act_full(delta: float, heightmap: Heightmap) -> void:
+	var asleep := body.sleeping
+	if not asleep:
+		var xform := body.global_transform
+		global_transform = xform
+		_yaw = atan2(xform.basis.z.x, xform.basis.z.z)
+	var move := _steer()
+	if move == Vector2.ZERO and asleep:
+		velocity = Vector3.ZERO
+		return
+	var pos := global_position
+	var grounded := not heightmap or pos.y - height * 0.5 <= heightmap.height_at(pos.x, pos.z) + GROUND_MARGIN
+	var current := body.linear_velocity
+	if move == Vector2.ZERO and grounded and current.x * current.x + current.z * current.z < STOPPED_SPEED * STOPPED_SPEED:
+		body.sleeping = true
+		velocity = Vector3.ZERO
+		return
+	if asleep: body.sleeping = false
+	_controller.max_speed = current_speed
+	_controller.turn_speed = turn_speed
+	_controller.desired_velocity = Vector3(move.x, 0.0, move.y)
+	_controller.desired_yaw = path_finder.desired_yaw if path_finder.desired_velocity != Vector3.ZERO else _yaw
+	velocity = _controller.next_velocity(current, grounded, delta)
+	body.linear_velocity = velocity
+	body.angular_velocity = Vector3(0.0, _controller.yaw_rate(_yaw), 0.0)
+
+# No body: the unit moves itself and stands on the heightmap.
+func _act_reduced(delta: float, heightmap: Heightmap) -> void:
+	var move := _steer()
+	velocity = Vector3(move.x, 0.0, move.y)
+	if move == Vector2.ZERO: return
+	var pos := global_position + velocity * delta
+	if heightmap: pos.y = heightmap.height_at(pos.x, pos.z) + height * 0.5
+	if path_finder.desired_velocity != Vector3.ZERO: _yaw = lerp_angle(_yaw, path_finder.desired_yaw, minf(turn_speed * delta, 1.0))
+	global_transform = Transform3D(Basis(Vector3.UP, _yaw), pos)
+
+# This tick's horizontal velocity: a walking unit keeps its speed and bends away from its neighbours; a standing one steps aside.
+func _steer() -> Vector2:
 	if pathing: path_finder.steer()
 	var desired := path_finder.desired_velocity
-	var move := Vector2.ZERO
 	if desired != Vector3.ZERO:
 		var heading := Vector2(desired.x, desired.z).normalized()
-		move = (heading + _bend(heading)).normalized() * current_speed
-		rotation.y = lerp_angle(rotation.y, path_finder.desired_yaw, minf(turn_speed * delta, 1.0))
-	elif push.length_squared() > PUSH_DEAD_ZONE * PUSH_DEAD_ZONE:
-		move = push.limit_length(1.0) * STEP_ASIDE_SPEED
-	velocity.x = move.x
-	velocity.z = move.y
-	if not is_on_floor(): velocity.y -= gravity * delta
+		return (heading + _bend(heading)).normalized() * current_speed
+	if push.length_squared() > PUSH_DEAD_ZONE * PUSH_DEAD_ZONE: return push.limit_length(1.0) * STEP_ASIDE_SPEED
+	return Vector2.ZERO
 
 # Separation turns a walking unit aside, never back: a push against its heading becomes one to the side the push
 # already leans to, or to the right when it's straight back, so two units meeting head on pass each other.
@@ -126,24 +171,39 @@ func wake() -> void:
 	if _thinking: _rethink = true
 	elif think_task: Scheduler.wake(think_task)
 
-# Reduced behaves like Full until Phase 2 gives it a cheaper mover.
+# Full units move a pooled RigidBody3D, Reduced units move themselves on the heightmap, Dormant units jump along
+# their path on think. A promoted unit keeps its walking velocity.
 func set_detail(level: Detail) -> void:
 	if level == detail: return
-	var was_dormant := detail == Detail.DORMANT
+	var was := detail
 	detail = level
+	if was == Detail.FULL: _detach_body()
 	if level == Detail.DORMANT: _park()
-	elif was_dormant: _unpark()
+	elif was == Detail.DORMANT: _unpark()
+	if level == Detail.FULL: _attach_body()
 
-# Dormant units leave the physics space and jump along their path on think.
+func _attach_body() -> void:
+	body = Units.take_body()
+	body.global_transform = Transform3D(Basis(Vector3.UP, _yaw), global_position)
+	body.linear_velocity = velocity
+	body.angular_velocity = Vector3.ZERO
+	body.sleeping = false
+
+func _detach_body() -> void:
+	var xform := body.global_transform
+	global_transform = xform
+	_yaw = atan2(xform.basis.z.x, xform.basis.z.z)
+	velocity = Vector3(body.linear_velocity.x, 0.0, body.linear_velocity.z)
+	Units.return_body(body)
+	body = null
+
 func _park() -> void:
-	process_mode = PROCESS_MODE_DISABLED
 	push = Vector2.ZERO
 	path_finder.start_jumping()
 
 func _unpark() -> void:
 	if pathing: path_finder.jump()
 	_snap_to_ground()
-	process_mode = PROCESS_MODE_INHERIT
 
 func _snap_to_ground() -> void:
 	var map := Map.current
@@ -179,6 +239,7 @@ func reset() -> void:
 	inventory = Inventory.new()
 	velocity = Vector3.ZERO
 	push = Vector2.ZERO
+	_yaw = 0.0
 	select(false)
 	group_num = -1
 

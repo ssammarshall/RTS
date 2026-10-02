@@ -9,21 +9,15 @@
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_4cf3i"]
 material = ExtResource("2_ghact")
 
-[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_07m2g"]
-
 [sub_resource type="BoxMesh" id="BoxMesh_lavmy"]
 
-[node name="GreenCapsule" type="CharacterBody3D" unique_id=1687250402 node_paths=PackedStringArray("selectable")]
-collision_layer = 2
+[node name="GreenCapsule" type="Node3D" unique_id=1687250402 node_paths=PackedStringArray("selectable")]
 script = ExtResource("1_gn4o7")
 selectable = NodePath("SelectableObject")
 portrait = ExtResource("2_urkk0")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1208214751]
 mesh = SubResource("CapsuleMesh_4cf3i")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=446618108]
-shape = SubResource("CapsuleShape3D_07m2g")
 
 [node name="Nose" type="MeshInstance3D" parent="." unique_id=708004877]
 transform = Transform3D(0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3, 0, 0.421111, -0.50846)

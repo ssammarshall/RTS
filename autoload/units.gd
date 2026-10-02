@@ -5,6 +5,7 @@ extends Node
 # Each tick, transitions and then spawns stop once budget_usec is used; at least one spawn runs per tick.
 # Then every unit that isn't Dormant acts (steers and moves), from one loop. Every unit is in `grid` at its last position.
 # Units don't collide with each other: each acting unit takes a push away from its grid neighbours every `separation_ticks`.
+# A Full unit moves a RigidBody3D from the body pool; Reduced and Dormant units have no body.
 
 const CHECKS_PER_TICK := 200
 const FULL_DISTANCE := 80.0
@@ -23,6 +24,7 @@ var separation_enabled := true
 # Stats for the harness.
 var busy_usec := 0
 var transitions := 0
+var transition_usec := 0
 var spawn_usec := 0
 var spawned := 0
 var reused := 0
@@ -36,9 +38,16 @@ var _spawns: Array[Callable] = []
 var _spawn_head := 0
 var _pool := {} # Scene path -> released units of that scene.
 var _picked: Array = []
+var _bodies := Node3D.new()
+var _free_bodies: Array[RigidBody3D] = []
+var _body_shape := CapsuleShape3D.new()
+var _body_material := PhysicsMaterial.new()
 
 func _ready() -> void:
 	process_physics_priority = -999
+	_bodies.name = "Bodies"
+	add_child(_bodies)
+	_body_material.friction = 0.0
 
 func _exit_tree() -> void:
 	for pool: Array in _pool.values():
@@ -58,7 +67,7 @@ func release(unit: Unit) -> void:
 	unit.get_parent().remove_child(unit)
 	_pool.get_or_add(unit.scene_file_path, []).append(unit)
 
-# A new unit starts at its level: registering happens before its body and area enter the physics space.
+# A unit starts at its level (Full without a camera or detail checks); a Full one takes a body from the pool.
 func register(unit: Unit) -> void:
 	unit.registry_index = units.size()
 	units.append(unit)
@@ -66,7 +75,7 @@ func register(unit: Unit) -> void:
 	var pos := unit.global_position
 	unit.grid_handle = grid.insert(unit, Vector2(pos.x, pos.z))
 	var camera := get_viewport().get_camera_3d()
-	if camera and detail_enabled: unit.set_detail(_wanted_detail(pos, camera, camera.global_position))
+	unit.set_detail(_wanted_detail(pos, camera, camera.global_position) if camera and detail_enabled else Unit.Detail.FULL)
 	_update_acting(unit)
 
 func unregister(unit: Unit) -> void:
@@ -111,6 +120,31 @@ func pick(camera: Camera3D, screen_pos: Vector2) -> Unit:
 			best = unit
 	return best
 
+# A RigidBody3D in the physics space for a Full unit, from the pool; give it back with return_body.
+func take_body() -> RigidBody3D:
+	if _free_bodies.is_empty(): return _new_body()
+	var body: RigidBody3D = _free_bodies.pop_back()
+	body.process_mode = Node.PROCESS_MODE_INHERIT
+	return body
+
+# Out of the physics space until it's taken again.
+func return_body(body: RigidBody3D) -> void:
+	body.process_mode = Node.PROCESS_MODE_DISABLED
+	_free_bodies.append(body)
+
+func _new_body() -> RigidBody3D:
+	var body := RigidBody3D.new()
+	body.axis_lock_angular_x = true
+	body.axis_lock_angular_z = true
+	body.physics_material_override = _body_material
+	body.collision_layer = 1 << (Global.COLLISION_LAYER.UNIT - 1)
+	body.collision_mask = 1 << (Global.COLLISION_LAYER.WORLD - 1)
+	var shape := CollisionShape3D.new()
+	shape.shape = _body_shape
+	body.add_child(shape)
+	_bodies.add_child(body)
+	return body
+
 # Units per detail level, indexed by Unit.Detail.
 func counts() -> PackedInt32Array:
 	var result := PackedInt32Array([0, 0, 0])
@@ -121,11 +155,13 @@ func _physics_process(delta: float) -> void:
 	var used := _update_details() if detail_enabled else 0
 	if _spawn_head < _spawns.size(): _run_spawns(budget_usec - used)
 	if act_enabled:
+		var map := Map.current
+		var heightmap := map.get_heightmap() if map else null
 		var turn := Scheduler.tick % separation_ticks
 		for unit in acting:
 			if unit.acting_index % separation_ticks == turn:
 				unit.push = grid.separation(unit.grid_handle, SEPARATION) if separation_enabled else Vector2.ZERO
-			unit.act(delta)
+			unit.act(delta, heightmap)
 			var pos := unit.global_position
 			grid.move(unit.grid_handle, Vector2(pos.x, pos.z))
 
@@ -150,7 +186,7 @@ func _update_details() -> int:
 	if units.is_empty() or not camera: return 0
 	var start := Time.get_ticks_usec()
 	var eye := camera.global_position
-	var transition_usec := 0
+	var used := 0
 	var demote_ticks := roundi(DEMOTE_DELAY * Engine.physics_ticks_per_second)
 	for i in mini(CHECKS_PER_TICK, units.size()):
 		if _next >= units.size(): _next = 0
@@ -160,16 +196,18 @@ func _update_details() -> int:
 			_demote_at[_next] = -1
 		elif wanted > unit.detail and _demote_at[_next] < 0:
 			_demote_at[_next] = Scheduler.tick + demote_ticks
-		elif transition_usec < budget_usec and (wanted < unit.detail or Scheduler.tick >= _demote_at[_next]):
+		elif used < budget_usec and (wanted < unit.detail or Scheduler.tick >= _demote_at[_next]):
 			var t := Time.get_ticks_usec()
 			unit.set_detail(wanted)
 			_update_acting(unit)
-			transition_usec += Time.get_ticks_usec() - t
+			var spent := Time.get_ticks_usec() - t
+			used += spent
+			transition_usec += spent
 			transitions += 1
 			_demote_at[_next] = -1
 		_next += 1
 	busy_usec += Time.get_ticks_usec() - start
-	return transition_usec
+	return used
 
 func _run_spawns(budget: int) -> void:
 	var start := Time.get_ticks_usec()
