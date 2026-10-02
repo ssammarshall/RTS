@@ -5,13 +5,14 @@ const FALLBACK_THINK := 1.0
 const DORMANT_JUMP := 2.0 # Longest a Dormant unit goes between jumps along its path.
 const MAX_THINK_PASSES := 3
 const SNAP_RAY := 50.0
+const MAX_BEND := 0.75 # How far separation can turn a walking unit, against its heading of length 1.
+const STEP_ASIDE_SPEED := 4.0 # A standing unit's speed when pushed all the way.
+const PUSH_DEAD_ZONE := 0.1 # A standing unit ignores a smaller push, so a settled crowd stands still.
 
 enum Detail { FULL, REDUCED, DORMANT }
 
 # Components.
 @export var selectable: SelectableObject
-@export var avoidance_agent: NavigationAgent3D
-@export var flock_agent: FlockAgent
 var path_finder: PathFinder
 var think_task: ThinkTask
 var detail := Detail.FULL
@@ -49,10 +50,10 @@ var inventory: Inventory = Inventory.new()
 var height: float = 2.0
 var radius := 0.5 # Of the body's capsule.
 var reach := 1.5 # How close the unit has to be to a building's area to interact with it.
+var push := Vector2.ZERO # Away from the unit's neighbours, from Units.
 
 static var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
-var _avoidance_moving := false
 var _thinking := false
 var _rethink := false
 
@@ -61,7 +62,6 @@ func _init() -> void:
 
 func _ready() -> void:
 	select(false)
-	avoidance_agent.velocity_computed.connect(Callable(_on_velocity_computed))
 
 func _enter_tree() -> void:
 	think_task = Scheduler.add(think, INF)
@@ -76,21 +76,32 @@ func _exit_tree() -> void:
 # Called every tick by Units while the unit isn't Dormant.
 func act(delta: float) -> void:
 	steer(delta)
-	#flock_agent.physics_update(delta)
 	if is_on_floor() and velocity.x == 0.0 and velocity.z == 0.0: return
 	move_and_slide()
 
+# A walking unit keeps its speed and bends away from its neighbours; a standing one steps aside.
 func steer(delta: float) -> void:
 	if pathing: path_finder.steer()
 	var desired := path_finder.desired_velocity
-	if avoidance_agent.avoidance_enabled:
-		if desired != Vector3.ZERO or _avoidance_moving: NavigationServer3D.agent_set_velocity(avoidance_agent.get_rid(), desired)
-		_avoidance_moving = desired != Vector3.ZERO
-	else:
-		velocity.x = desired.x
-		velocity.z = desired.z
-	if desired != Vector3.ZERO: rotation.y = lerp_angle(rotation.y, path_finder.desired_yaw, minf(turn_speed * delta, 1.0))
+	var move := Vector2.ZERO
+	if desired != Vector3.ZERO:
+		var heading := Vector2(desired.x, desired.z).normalized()
+		move = (heading + _bend(heading)).normalized() * current_speed
+		rotation.y = lerp_angle(rotation.y, path_finder.desired_yaw, minf(turn_speed * delta, 1.0))
+	elif push.length_squared() > PUSH_DEAD_ZONE * PUSH_DEAD_ZONE:
+		move = push.limit_length(1.0) * STEP_ASIDE_SPEED
+	velocity.x = move.x
+	velocity.z = move.y
 	if not is_on_floor(): velocity.y -= gravity * delta
+
+# Separation turns a walking unit aside, never back: a push against its heading becomes one to the side the push
+# already leans to, or to the right when it's straight back, so two units meeting head on pass each other.
+func _bend(heading: Vector2) -> Vector2:
+	var back := push.dot(heading)
+	if back >= 0.0: return push.limit_length(MAX_BEND)
+	var side := Vector2(-heading.y, heading.x)
+	var lateral := push.dot(side)
+	return side * clampf(lateral - back if lateral >= 0.0 else lateral + back, -MAX_BEND, MAX_BEND)
 
 # A wake during the think (a leg ended, a command finished) runs another pass now instead of a think next tick.
 func think(delta: float) -> void:
@@ -124,16 +135,15 @@ func set_detail(level: Detail) -> void:
 	if level == Detail.DORMANT: _park()
 	elif was_dormant: _unpark()
 
-# Dormant units leave the physics space (body, area and avoidance) and jump along their path on think.
+# Dormant units leave the physics space and jump along their path on think.
 func _park() -> void:
 	process_mode = PROCESS_MODE_DISABLED
-	NavigationServer3D.agent_set_paused(avoidance_agent.get_rid(), true) # A unit that enters the tree parked isn't paused by the agent itself.
+	push = Vector2.ZERO
 	path_finder.start_jumping()
 
 func _unpark() -> void:
 	if pathing: path_finder.jump()
 	_snap_to_ground()
-	NavigationServer3D.agent_set_paused(avoidance_agent.get_rid(), false)
 	process_mode = PROCESS_MODE_INHERIT
 
 func _snap_to_ground() -> void:
@@ -141,12 +151,6 @@ func _snap_to_ground() -> void:
 		1 << (Global.COLLISION_LAYER.TERRAIN - 1))
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
 	if hit: global_position.y = hit.position.y + height * 0.5
-
-func _on_velocity_computed(safe_velocity: Vector3) -> void:
-	var horizontal := Vector3(safe_velocity.x, 0.0, safe_velocity.z)
-	if path_finder.desired_velocity != Vector3.ZERO and horizontal != Vector3.ZERO: horizontal = horizontal.normalized() * current_speed
-	velocity.x = horizontal.x
-	velocity.z = horizontal.z
 
 func _on_command_finished() -> void:
 	set_command(null)
@@ -177,8 +181,7 @@ func reset() -> void:
 	inventory.unequip(self)
 	inventory = Inventory.new()
 	velocity = Vector3.ZERO
-	_avoidance_moving = false
-	NavigationServer3D.agent_set_velocity(avoidance_agent.get_rid(), Vector3.ZERO)
+	push = Vector2.ZERO
 	select(false)
 	group_num = -1
 

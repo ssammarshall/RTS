@@ -4,6 +4,7 @@ extends Node
 # Promotions happen at once, demotions after DEMOTE_DELAY. Spawns are queued and reuse released units of the same scene.
 # Each tick, transitions and then spawns stop once budget_usec is used; at least one spawn runs per tick.
 # Then every unit that isn't Dormant acts (steers and moves), from one loop. Every unit is in `grid` at its last position.
+# Units don't collide with each other: each acting unit takes a push away from its grid neighbours every `separation_ticks`.
 
 const CHECKS_PER_TICK := 200
 const FULL_DISTANCE := 80.0
@@ -11,10 +12,13 @@ const NEAR_DISTANCE := 120.0
 const DEMOTE_DELAY := 1.0
 const GRID_CELL := 8.0
 const PICK_HEIGHT := 2.5 # Picking looks along the mouse ray where it's lower than this above the ground.
+const SEPARATION := 1.2 # Units whose centres are closer than this push apart: two radii and a gap.
 
 var budget_usec := 1000
+var separation_ticks := 2
 var detail_enabled := true
 var act_enabled := true # Off while the harness runs and times the act step itself.
+var separation_enabled := true
 
 # Stats for the harness.
 var busy_usec := 0
@@ -117,7 +121,10 @@ func _physics_process(delta: float) -> void:
 	var used := _update_details() if detail_enabled else 0
 	if _spawn_head < _spawns.size(): _run_spawns(budget_usec - used)
 	if act_enabled:
+		var turn := Scheduler.tick % separation_ticks
 		for unit in acting:
+			if unit.acting_index % separation_ticks == turn:
+				unit.push = grid.separation(unit.grid_handle, SEPARATION) if separation_enabled else Vector2.ZERO
 			unit.act(delta)
 			var pos := unit.global_position
 			grid.move(unit.grid_handle, Vector2(pos.x, pos.z))

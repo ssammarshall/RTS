@@ -5,7 +5,6 @@
 [ext_resource type="Texture2D" uid="uid://dtv3whkyckew1" path="res://units/portraits/green_cap.png" id="2_urkk0"]
 [ext_resource type="Script" uid="uid://ba4xrxb1iruiy" path="res://selectable_object.gd" id="3_uug42"]
 [ext_resource type="Texture2D" uid="uid://w1ixg5bhlopc" path="res://ui/rts/selected_ring.png" id="4_n4vxx"]
-[ext_resource type="Script" uid="uid://blhq32c2prjya" path="res://units/components/flock_agent.gd" id="6_d7xo5"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_4cf3i"]
 material = ExtResource("2_ghact")
@@ -14,11 +13,10 @@ material = ExtResource("2_ghact")
 
 [sub_resource type="BoxMesh" id="BoxMesh_lavmy"]
 
-[node name="GreenCapsule" type="CharacterBody3D" unique_id=1687250402 node_paths=PackedStringArray("selectable", "avoidance_agent", "flock_agent")]
+[node name="GreenCapsule" type="CharacterBody3D" unique_id=1687250402 node_paths=PackedStringArray("selectable")]
+collision_layer = 2
 script = ExtResource("1_gn4o7")
 selectable = NodePath("SelectableObject")
-avoidance_agent = NodePath("AvoidanceAgent")
-flock_agent = NodePath("FlockAgent")
 portrait = ExtResource("2_urkk0")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1208214751]
@@ -39,9 +37,3 @@ highlight = NodePath("Decal")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.95, 0)
 size = Vector3(2, 0.2, 2)
 texture_albedo = ExtResource("4_n4vxx")
-
-[node name="FlockAgent" type="Node3D" parent="." unique_id=469414476]
-script = ExtResource("6_d7xo5")
-
-[node name="AvoidanceAgent" type="NavigationAgent3D" parent="." unique_id=1568659099]
-avoidance_enabled = true

@@ -2,6 +2,8 @@ class_name SpatialGrid extends RefCounted
 # Uniform grid on the ground plane (x, z). An item is filed under its cell and only re-filed when it moves into
 # another one. Items are addressed by the handle insert() returns; handles of removed items are reused.
 
+const GOLDEN_ANGLE := 2.39996
+
 var cell_size: float
 
 var _inverse: float
@@ -71,6 +73,26 @@ func query_rect(rect: Rect2, out: Array) -> void:
 			if cell == null: continue
 			for handle: int in cell:
 				if rect.has_point(_positions[handle]): out.append(_items[handle])
+
+# The push away from the other items within `distance` of the item at `handle`: each adds its direction away from it,
+# weighted from 1 on top of it to 0 at `distance`. An item exactly on top pushes in a direction picked from the handle.
+func separation(handle: int, distance: float) -> Vector2:
+	var center := _positions[handle]
+	var push := Vector2.ZERO
+	var d2 := distance * distance
+	for x in range(floori((center.x - distance) * _inverse), floori((center.x + distance) * _inverse) + 1):
+		for z in range(floori((center.y - distance) * _inverse), floori((center.y + distance) * _inverse) + 1):
+			var cell = _cells.get(_cell_key(x, z))
+			if cell == null: continue
+			for other: int in cell:
+				var away := center - _positions[other]
+				var l2 := away.length_squared()
+				if l2 >= d2: continue
+				if l2 > 0.0:
+					var l := sqrt(l2)
+					push += away * ((distance - l) / (distance * l))
+				elif other != handle: push += Vector2.from_angle(handle * GOLDEN_ANGLE)
+	return push
 
 func _key(pos: Vector2) -> int:
 	return _cell_key(floori(pos.x * _inverse), floori(pos.y * _inverse))

@@ -246,7 +246,7 @@ func input_event_mouse_button(event: InputEventMouseButton) -> void:
 				current_mode = MODE.DEFAULT
 		return
 	elif event.is_action_pressed("RMB"):
-		var result: Dictionary = Util.mouse_raycast(camera_rig.camera, camera_rig.mouse_current_position, 0b11111)
+		var result: Dictionary = Util.mouse_raycast(camera_rig.camera, camera_rig.mouse_current_position, 0b11101)
 		var pos := Vector3.ZERO
 		var collision: Object = null
 		if result.has("position"):
