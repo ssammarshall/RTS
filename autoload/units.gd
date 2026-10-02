@@ -10,6 +10,7 @@ const FULL_DISTANCE := 80.0
 const NEAR_DISTANCE := 120.0
 const DEMOTE_DELAY := 1.0
 const GRID_CELL := 8.0
+const PICK_HEIGHT := 2.5 # Picking looks along the mouse ray where it's lower than this above the ground.
 
 var budget_usec := 1000
 var detail_enabled := true
@@ -30,6 +31,7 @@ var _next := 0
 var _spawns: Array[Callable] = []
 var _spawn_head := 0
 var _pool := {} # Scene path -> released units of that scene.
+var _picked: Array = []
 
 func _ready() -> void:
 	process_physics_priority = -999
@@ -80,6 +82,30 @@ func unregister(unit: Unit) -> void:
 func moved(unit: Unit) -> void:
 	var pos := unit.global_position
 	grid.move(unit.grid_handle, Vector2(pos.x, pos.z))
+
+# The unit under `screen_pos`: of the units whose capsule the camera ray passes through, the nearest to the camera.
+func pick(camera: Camera3D, screen_pos: Vector2) -> Unit:
+	var origin := camera.project_ray_origin(screen_pos)
+	var dir := camera.project_ray_normal(screen_pos)
+	var hit := Util.mouse_raycast(camera, screen_pos, 1 << (Global.COLLISION_LAYER.TERRAIN - 1))
+	if hit.is_empty() or dir.y > -0.01: return null
+	var ground: Vector3 = hit.position
+	var top := origin + dir * maxf((ground.y + PICK_HEIGHT - origin.y) / dir.y, 0.0)
+	var span := Vector2(top.x - ground.x, top.z - ground.z)
+	grid.query_circle(Vector2(ground.x, ground.z) + span * 0.5, span.length() * 0.5 + 1.0, _picked)
+	var far := ground + dir
+	var best: Unit = null
+	var best_distance := INF
+	for unit: Unit in _picked:
+		var axis := Vector3.UP * (unit.height * 0.5 - unit.radius)
+		var center := unit.global_position
+		var closest := Geometry3D.get_closest_points_between_segments(origin, far, center - axis, center + axis)
+		if closest[0].distance_squared_to(closest[1]) > unit.radius * unit.radius: continue
+		var distance := origin.distance_squared_to(closest[0])
+		if distance < best_distance:
+			best_distance = distance
+			best = unit
+	return best
 
 # Units per detail level, indexed by Unit.Detail.
 func counts() -> PackedInt32Array:

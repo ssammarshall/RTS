@@ -2,6 +2,8 @@ class_name Building extends StaticBody3D
 
 signal removed(building: Building)
 
+const UNIT_REACH_BOUND := 3.0 # More than any unit's reach.
+
 @export var title: String
 @export var resource: StrategicResource # eventually update to have more than one type of resource
 var resource_limit: int = 1000
@@ -86,15 +88,29 @@ func display_building_preview(display: bool) -> void:
 		mesh.show()
 		preview_mesh.hide()
 
-# Whether a unit at `pos` with an interaction area of `radius` touches this building's area, on the ground plane.
+# Whether a unit at `pos` with a reach of `radius` touches this building's area, on the ground plane.
 func in_reach(pos: Vector3, radius: float) -> bool:
 	if not _cache_reach(): return false
-	var local := _reach_inverse * pos
-	var dx := maxf(absf(local.x) - _reach_half.x, 0.0)
-	var dz := maxf(absf(local.z) - _reach_half.y, 0.0)
+	return _touches(_reach_inverse * pos, _reach_half, radius)
+
+# Whether any unit's reach touches this building's area where it is now. Placement previews move, so nothing is cached.
+func units_in_reach() -> bool:
+	var box := building_area_collision_shape.shape as BoxShape3D
+	if not box: return false
+	var area := building_area_collision_shape.global_transform
+	var inverse := area.affine_inverse()
+	var half := Vector2(box.size.x, box.size.z) * 0.5
+	Units.grid.query_circle(Vector2(area.origin.x, area.origin.z), half.length() + UNIT_REACH_BOUND, _found)
+	for unit: Unit in _found:
+		if _touches(inverse * unit.global_position, half, unit.reach): return true
+	return false
+
+static func _touches(local: Vector3, half: Vector2, radius: float) -> bool:
+	var dx := maxf(absf(local.x) - half.x, 0.0)
+	var dz := maxf(absf(local.z) - half.y, 0.0)
 	return dx * dx + dz * dz <= radius * radius
 
-# How far along a move from `a` to `b` (0 to 1) a unit with an interaction area of `radius` first touches this
+# How far along a move from `a` to `b` (0 to 1) a unit with a reach of `radius` first touches this
 # building's area, on the ground plane; 0 if it already does, -1 if it doesn't on the way.
 # The area's box grown by the radius has rounded corners; the box grown square is a cheap first check.
 func reach_along(a: Vector3, b: Vector3, radius: float) -> float:

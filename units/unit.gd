@@ -8,9 +8,6 @@ const SNAP_RAY := 50.0
 
 enum Detail { FULL, REDUCED, DORMANT }
 
-# Nodes.
-@onready var interaction_area: Area3D = $Area3D
-
 # Components.
 @export var selectable: SelectableObject
 @export var avoidance_agent: NavigationAgent3D
@@ -50,7 +47,8 @@ var pathing: bool = false
 var inventory: Inventory = Inventory.new()
 
 var height: float = 2.0
-var reach := 1.5 # Radius of the interaction area.
+var radius := 0.5 # Of the body's capsule.
+var reach := 1.5 # How close the unit has to be to a building's area to interact with it.
 
 static var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
@@ -63,9 +61,6 @@ func _init() -> void:
 
 func _ready() -> void:
 	select(false)
-
-	var area_shape := (interaction_area.get_child(0) as CollisionShape3D).shape as CylinderShape3D
-	if area_shape: reach = area_shape.radius
 	avoidance_agent.velocity_computed.connect(Callable(_on_velocity_computed))
 
 func _enter_tree() -> void:

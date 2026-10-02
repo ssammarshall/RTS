@@ -14,9 +14,6 @@ material = ExtResource("2_ghact")
 
 [sub_resource type="BoxMesh" id="BoxMesh_lavmy"]
 
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_heeqj"]
-radius = 1.5
-
 [node name="GreenCapsule" type="CharacterBody3D" unique_id=1687250402 node_paths=PackedStringArray("selectable", "avoidance_agent", "flock_agent")]
 script = ExtResource("1_gn4o7")
 selectable = NodePath("SelectableObject")
@@ -33,11 +30,6 @@ shape = SubResource("CapsuleShape3D_07m2g")
 [node name="Nose" type="MeshInstance3D" parent="." unique_id=708004877]
 transform = Transform3D(0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3, 0, 0.421111, -0.50846)
 mesh = SubResource("BoxMesh_lavmy")
-
-[node name="Area3D" type="Area3D" parent="." unique_id=1075884786]
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D" unique_id=1032995284]
-shape = SubResource("CylinderShape3D_heeqj")
 
 [node name="SelectableObject" type="Node3D" parent="." unique_id=666836328 node_paths=PackedStringArray("highlight")]
 script = ExtResource("3_uug42")

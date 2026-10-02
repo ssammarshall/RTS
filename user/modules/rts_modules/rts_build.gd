@@ -68,7 +68,7 @@ func check_building_placement(user: User) -> bool:
 	
 	building.set_preview_color(Global.RED_TRANSPARENT)
 	
-	if overlapping_bodies.size() > 0: return false
+	if overlapping_bodies.size() > 0 or building.units_in_reach(): return false
 	
 	var area_collision := building.building_area_collision_shape
 	var size: Vector3 = area_collision.get_shape().size * 0.5

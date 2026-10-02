@@ -31,7 +31,7 @@ func update(user: User, _delta: float) -> void:
 	
 	cast_unit_selection(user, user.rect)
 
-# Check selectable Units via dragbox and mouse_raycast_collider.
+# Check selectable Units via dragbox and the unit under the mouse.
 func cast_unit_selection(user: User, dragbox: Rect2) -> void:
 	for unit in user.available_units:
 		# Ignore if already selected.
@@ -41,9 +41,8 @@ func cast_unit_selection(user: User, dragbox: Rect2) -> void:
 				select_unit(user, unit)
 				break
 	# Check if mouse is hovering unit.
-	var collision: Object = Util.mouse_raycast_collider(user.camera_rig.camera,user.camera_rig.mouse_current_position)
-	if collision is Unit:
-		if user.available_units.has(collision):select_unit(user, collision)
+	var hovered := Units.pick(user.camera_rig.camera, user.camera_rig.mouse_current_position)
+	if hovered and user.available_units.has(hovered): select_unit(user, hovered)
 
 # Highlight Unit and add to control_groups[0].
 func select_unit(user: User, unit: Unit) -> void:
