@@ -4,7 +4,6 @@ class_name Unit extends CharacterBody3D
 const FALLBACK_THINK := 1.0
 const DORMANT_JUMP := 2.0 # Longest a Dormant unit goes between jumps along its path.
 const MAX_THINK_PASSES := 3
-const SNAP_RAY := 50.0
 const MAX_BEND := 0.75 # How far separation can turn a walking unit, against its heading of length 1.
 const STEP_ASIDE_SPEED := 4.0 # A standing unit's speed when pushed all the way.
 const PUSH_DEAD_ZONE := 0.1 # A standing unit ignores a smaller push, so a settled crowd stands still.
@@ -147,10 +146,8 @@ func _unpark() -> void:
 	process_mode = PROCESS_MODE_INHERIT
 
 func _snap_to_ground() -> void:
-	var query := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * SNAP_RAY, global_position + Vector3.DOWN * SNAP_RAY,
-		1 << (Global.COLLISION_LAYER.TERRAIN - 1))
-	var hit := get_world_3d().direct_space_state.intersect_ray(query)
-	if hit: global_position.y = hit.position.y + height * 0.5
+	var map := Map.current
+	if map: global_position.y = map.get_heightmap().height_at(global_position.x, global_position.z) + height * 0.5
 
 func _on_command_finished() -> void:
 	set_command(null)

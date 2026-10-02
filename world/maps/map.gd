@@ -3,8 +3,12 @@ class_name Map extends Node3D
 ## Owns the building list and delegates navigation to its [NavGrid] component,
 ## which carves placed buildings out of a tiled navigation mesh.
 ## Every [Building] under the map is in [member building_grid]; placement previews aren't under it.
+## The terrain's [Heightmap] is baked on a worker thread when the map loads.
+
+signal heightmap_baked
 
 const BUILDING_CELL := 32.0
+const HEIGHTMAP_CELL := 1.0
 
 static var current: Map
 
@@ -14,11 +18,15 @@ static var current: Map
 var buildings: Array[Building] = []
 var building_grid := SpatialGrid.new(BUILDING_CELL)
 
+var _heightmap: Heightmap
+var _heightmap_task := -1
+
 func _enter_tree() -> void:
 	current = self
 
 func _exit_tree() -> void:
 	if current == self: current = null
+	_finish_heightmap()
 
 func _ready() -> void:
 	SignalBus.building_placed.connect(Callable(_on_building_placed))
@@ -26,6 +34,23 @@ func _ready() -> void:
 	SignalBus.building_constructed.connect(Callable(_on_building_constructed))
 
 	nav_grid.build(terrain_root)
+	var faces := Heightmap.terrain_faces(terrain_root, 1 << (Global.COLLISION_LAYER.TERRAIN - 1))
+	_heightmap_task = WorkerThreadPool.add_task(_bake_heightmap.bind(faces))
+
+# Waits for the bake if it's still running, which only happens right after the map loads.
+func get_heightmap() -> Heightmap:
+	_finish_heightmap()
+	return _heightmap
+
+func _bake_heightmap(faces: PackedVector3Array) -> void:
+	_heightmap = Heightmap.bake(faces, HEIGHTMAP_CELL)
+	_finish_heightmap.call_deferred()
+
+func _finish_heightmap() -> void:
+	if _heightmap_task < 0: return
+	WorkerThreadPool.wait_for_task_completion(_heightmap_task)
+	_heightmap_task = -1
+	heightmap_baked.emit()
 
 func _on_building_placed(building: Building) -> void:
 	building.get_parent().remove_child(building)
