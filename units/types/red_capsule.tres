@@ -4,13 +4,12 @@
 [ext_resource type="Texture2D" uid="uid://d1ftqwwmse71q" path="res://units/portraits/red_cap.png" id="2_portrait"]
 [ext_resource type="Material" uid="uid://cm0aikw46qqg8" path="res://units/materials/red.tres" id="3_material"]
 [ext_resource type="Script" uid="uid://66el7lriyj8x" path="res://units/jobs/gatherer.gd" id="4_gatherer"]
-
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_body"]
+[ext_resource type="ArrayMesh" uid="uid://bborjylr81r55" path="res://units/meshes/capsule.tres" id="5_mesh"]
 
 [resource]
 script = ExtResource("1_type")
 title = "Red capsule"
 portrait = ExtResource("2_portrait")
-mesh = SubResource("CapsuleMesh_body")
+mesh = ExtResource("5_mesh")
 material = ExtResource("3_material")
 allowed_jobs = Array[Script]([ExtResource("4_gatherer")])

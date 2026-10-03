@@ -16,7 +16,6 @@ enum Detail { FULL, REDUCED, DORMANT }
 # Components.
 @export var selectable: SelectableObject
 @export var model: MeshInstance3D
-@export var nose: MeshInstance3D
 var path_finder: PathFinder
 var think_task: ThinkTask
 var detail := Detail.REDUCED # No body until Units sets the unit's level.
@@ -106,7 +105,7 @@ func set_type(value: UnitType) -> void:
 	inventory.resource_limit = value.carry_limit
 	model.mesh = value.mesh
 	model.material_override = value.material
-	if resized: _fit_to_size()
+	if resized: _fit_ring()
 	if current_job and not value.allows_job(current_job): set_job(null)
 	if registry_index >= 0:
 		if resized:
@@ -116,9 +115,8 @@ func set_type(value: UnitType) -> void:
 		Units.retyped(self)
 	type_changed.emit()
 
-# The nose on the front of the capsule and the selection ring around its feet.
-func _fit_to_size() -> void:
-	nose.position = Vector3(0.0, height * 0.21, -radius)
+# The selection ring around the unit's feet.
+func _fit_ring() -> void:
 	var ring := selectable.highlight as Decal
 	ring.size = Vector3(radius * 4.0, ring.size.y, radius * 4.0)
 	ring.position.y = 0.05 - height * 0.5
