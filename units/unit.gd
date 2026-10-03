@@ -241,9 +241,16 @@ func _unpark() -> void:
 	_snap_to_ground()
 	reset_physics_interpolation()
 
+# A unit placed in a map enters the tree before the map has baked its heightmap, so it snaps, once it's baked.
 func _snap_to_ground() -> void:
 	var map := Map.current
-	if map: global_position.y = map.get_heightmap().height_at(global_position.x, global_position.z) + height * 0.5
+	if not map: return
+	var heightmap := map.get_heightmap()
+	if not heightmap:
+		if not map.heightmap_baked.is_connected(_snap_to_ground): map.heightmap_baked.connect(_snap_to_ground, CONNECT_ONE_SHOT)
+		return
+	global_position.y = heightmap.height_at(global_position.x, global_position.z) + height * 0.5
+	if body: body.global_position = global_position
 
 func _on_command_finished() -> void:
 	set_command(null)
