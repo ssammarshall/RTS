@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://bwl1yw33tcmm4"]
+
+[ext_resource type="Script" uid="uid://ctupeh8712lb6" path="res://units/unit.gd" id="1_unit"]
+[ext_resource type="Script" uid="uid://ba4xrxb1iruiy" path="res://selectable_object.gd" id="2_select"]
+[ext_resource type="Texture2D" uid="uid://w1ixg5bhlopc" path="res://ui/rts/selected_ring.png" id="3_ring"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_model"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_nose"]
+
+[node name="Unit" type="Node3D" unique_id=1687250402 node_paths=PackedStringArray("selectable", "model", "nose")]
+script = ExtResource("1_unit")
+selectable = NodePath("SelectableObject")
+model = NodePath("Model")
+nose = NodePath("Nose")
+
+[node name="Model" type="MeshInstance3D" parent="." unique_id=1208214751]
+mesh = SubResource("CapsuleMesh_model")
+
+[node name="Nose" type="MeshInstance3D" parent="." unique_id=708004877]
+transform = Transform3D(0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3, 0, 0.42, -0.5)
+mesh = SubResource("BoxMesh_nose")
+
+[node name="SelectableObject" type="Node3D" parent="." unique_id=666836328 node_paths=PackedStringArray("highlight")]
+script = ExtResource("2_select")
+highlight = NodePath("Decal")
+
+[node name="Decal" type="Decal" parent="SelectableObject" unique_id=616989849]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.95, 0)
+visible = false
+size = Vector3(2, 0.2, 2)
+texture_albedo = ExtResource("3_ring")

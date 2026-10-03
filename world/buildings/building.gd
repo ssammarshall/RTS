@@ -74,7 +74,7 @@ func assign_worker(unit: Unit) -> void:
 		unit.set_command(InteractCommand.new(self))
 
 func give_job(unit: Unit) -> void:
-	if job: unit.set_job(job.copy())
+	if job and unit.type.allows_job(job): unit.set_job(job.copy())
 
 func select(value: bool) -> void:
 	selectable_object.is_selected = value

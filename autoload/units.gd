@@ -1,19 +1,20 @@
 extends Node
 # Unit registry, simulation detail levels, spawning and the act step. A round robin over the registry compares each unit with the camera:
-# Full in view within FULL_DISTANCE, Reduced in view further out or off screen within NEAR_DISTANCE, Dormant otherwise.
-# Promotions happen at once, demotions after DEMOTE_DELAY. Spawns are queued and reuse released units of the same scene.
+# Full in view within FULL_DISTANCE, Reduced in view further out or off screen within NEAR_DISTANCE, Dormant otherwise, but never below
+# the unit type's lowest level. Promotions happen at once, demotions after DEMOTE_DELAY. Spawns are queued and reuse released units.
 # Each tick, transitions and then spawns stop once budget_usec is used; at least one spawn runs per tick.
 # Then every unit that isn't Dormant acts (steers and moves), from one loop. Every unit is in `grid` at its last position.
 # Units don't collide with each other: each acting unit takes a push away from its grid neighbours every `separation_ticks`.
-# A Full unit moves a RigidBody3D from the body pool; Reduced and Dormant units have no body.
+# A Full unit moves a RigidBody3D of its size from the body pool; Reduced and Dormant units have no body.
 
+const SCENE: PackedScene = preload("res://units/unit.tscn")
 const CHECKS_PER_TICK := 200
 const FULL_DISTANCE := 80.0
 const NEAR_DISTANCE := 120.0
 const DEMOTE_DELAY := 1.0
 const GRID_CELL := 8.0
 const PICK_HEIGHT := 2.5 # Picking looks along the mouse ray where it's lower than this above the ground.
-const SEPARATION := 1.2 # Units whose centres are closer than this push apart: two radii and a gap.
+const SEPARATION_GAP := 0.2 # Units push apart while closer than their two radii plus this.
 
 var budget_usec := 1000
 var separation_ticks := 2
@@ -36,11 +37,11 @@ var _demote_at := PackedInt64Array() # Tick from which the unit may drop a level
 var _next := 0
 var _spawns: Array[Callable] = []
 var _spawn_head := 0
-var _pool := {} # Scene path -> released units of that scene.
+var _pool: Array[Unit] = [] # Released units.
 var _picked: Array = []
 var _bodies := Node3D.new()
-var _free_bodies: Array[RigidBody3D] = []
-var _body_shape := CapsuleShape3D.new()
+var _shapes := {} # Vector2(radius, height) -> the CapsuleShape3D every body of that size shares.
+var _free_bodies := {} # CapsuleShape3D -> bodies with that shape out of the physics space.
 var _body_material := PhysicsMaterial.new()
 
 func _ready() -> void:
@@ -50,22 +51,21 @@ func _ready() -> void:
 	_body_material.friction = 0.0
 
 func _exit_tree() -> void:
-	for pool: Array in _pool.values():
-		for unit: Unit in pool: unit.free()
+	for unit in _pool: unit.free()
 	_pool.clear()
 
-# Adds a unit of `scene` under `parent` at `position` within the next ticks; `on_spawned` gets it once it's in the tree.
-func spawn(scene: PackedScene, parent: Node, position: Vector3, on_spawned := Callable()) -> void:
-	_spawns.append(_spawn.bind(scene, parent, position, on_spawned))
+# Adds a unit of `type` in `faction` under `parent` at `position` within the next ticks; `on_spawned` gets it once it's in the tree.
+func spawn(type: UnitType, faction: Faction, parent: Node, position: Vector3, on_spawned := Callable()) -> void:
+	_spawns.append(_spawn.bind(type, faction, parent, position, on_spawned))
 
 func pending_spawns() -> int:
 	return _spawns.size() - _spawn_head
 
-# Takes the unit out of the tree and keeps it for the next spawn of its scene. Take it out of its groups first.
+# Takes the unit out of the tree and keeps it for a later spawn. Take it out of its groups first.
 func release(unit: Unit) -> void:
 	unit.reset()
 	unit.get_parent().remove_child(unit)
-	_pool.get_or_add(unit.scene_file_path, []).append(unit)
+	_pool.append(unit)
 
 # A unit starts at its level (Full without a camera or detail checks); a Full one takes a body from the pool.
 func register(unit: Unit) -> void:
@@ -73,9 +73,10 @@ func register(unit: Unit) -> void:
 	units.append(unit)
 	_demote_at.append(-1)
 	var pos := unit.global_position
-	unit.grid_handle = grid.insert(unit, Vector2(pos.x, pos.z))
+	unit.grid_handle = grid.insert(unit, Vector2(pos.x, pos.z), unit.radius)
 	var camera := get_viewport().get_camera_3d()
-	unit.set_detail(_wanted_detail(pos, camera, camera.global_position) if camera and detail_enabled else Unit.Detail.FULL)
+	var level := _wanted_detail(pos, camera, camera.global_position) if camera and detail_enabled else Unit.Detail.FULL
+	unit.set_detail(level if level <= unit.lowest_detail else unit.lowest_detail)
 	_update_acting(unit)
 
 func unregister(unit: Unit) -> void:
@@ -95,6 +96,13 @@ func unregister(unit: Unit) -> void:
 func moved(unit: Unit) -> void:
 	var pos := unit.global_position
 	grid.move(unit.grid_handle, Vector2(pos.x, pos.z))
+
+# After a registered unit's type changed: its radius in the grid, and at least the type's lowest detail level.
+func retyped(unit: Unit) -> void:
+	grid.set_radius(unit.grid_handle, unit.radius)
+	if unit.detail <= unit.lowest_detail: return
+	unit.set_detail(unit.lowest_detail)
+	_update_acting(unit)
 
 # The unit under `screen_pos`: of the units whose capsule the camera ray passes through, the nearest to the camera.
 func pick(camera: Camera3D, screen_pos: Vector2) -> Unit:
@@ -120,28 +128,37 @@ func pick(camera: Camera3D, screen_pos: Vector2) -> Unit:
 			best = unit
 	return best
 
-# A RigidBody3D in the physics space for a Full unit, from the pool; give it back with return_body.
-func take_body() -> RigidBody3D:
-	if _free_bodies.is_empty(): return _new_body()
-	var body: RigidBody3D = _free_bodies.pop_back()
+# A RigidBody3D with a capsule of `radius` and `height` in the physics space, from the pool; give it back with return_body.
+func take_body(radius: float, height: float) -> RigidBody3D:
+	var size := Vector2(radius, height)
+	var shape: CapsuleShape3D = _shapes.get(size)
+	if not shape:
+		shape = CapsuleShape3D.new()
+		shape.radius = radius
+		shape.height = height
+		_shapes[size] = shape
+		_free_bodies[shape] = []
+	var spares: Array = _free_bodies[shape]
+	if spares.is_empty(): return _new_body(shape)
+	var body: RigidBody3D = spares.pop_back()
 	body.process_mode = Node.PROCESS_MODE_INHERIT
 	return body
 
 # Out of the physics space until it's taken again.
 func return_body(body: RigidBody3D) -> void:
 	body.process_mode = Node.PROCESS_MODE_DISABLED
-	_free_bodies.append(body)
+	_free_bodies[(body.get_child(0) as CollisionShape3D).shape].append(body)
 
-func _new_body() -> RigidBody3D:
+func _new_body(shape: CapsuleShape3D) -> RigidBody3D:
 	var body := RigidBody3D.new()
 	body.axis_lock_angular_x = true
 	body.axis_lock_angular_z = true
 	body.physics_material_override = _body_material
 	body.collision_layer = 1 << (Global.COLLISION_LAYER.UNIT - 1)
 	body.collision_mask = 1 << (Global.COLLISION_LAYER.WORLD - 1)
-	var shape := CollisionShape3D.new()
-	shape.shape = _body_shape
-	body.add_child(shape)
+	var collision := CollisionShape3D.new()
+	collision.shape = shape
+	body.add_child(collision)
 	_bodies.add_child(body)
 	return body
 
@@ -160,7 +177,7 @@ func _physics_process(delta: float) -> void:
 		var turn := Scheduler.tick % separation_ticks
 		for unit in acting:
 			if unit.acting_index % separation_ticks == turn:
-				unit.push = grid.separation(unit.grid_handle, SEPARATION) if separation_enabled else Vector2.ZERO
+				unit.push = grid.separation(unit.grid_handle, SEPARATION_GAP) if separation_enabled else Vector2.ZERO
 			unit.act(delta, heightmap)
 			var pos := unit.global_position
 			grid.move(unit.grid_handle, Vector2(pos.x, pos.z))
@@ -192,6 +209,7 @@ func _update_details() -> int:
 		if _next >= units.size(): _next = 0
 		var unit := units[_next]
 		var wanted := _wanted_detail(unit.global_position, camera, eye)
+		if wanted > unit.lowest_detail: wanted = unit.lowest_detail
 		if wanted == unit.detail:
 			_demote_at[_next] = -1
 		elif wanted > unit.detail and _demote_at[_next] < 0:
@@ -222,14 +240,15 @@ func _run_spawns(budget: int) -> void:
 		_spawn_head = 0
 	spawn_usec += Time.get_ticks_usec() - start
 
-func _spawn(scene: PackedScene, parent: Node, position: Vector3, on_spawned: Callable) -> void:
+func _spawn(type: UnitType, faction: Faction, parent: Node, position: Vector3, on_spawned: Callable) -> void:
 	if not is_instance_valid(parent): return
-	var pool: Array = _pool.get(scene.resource_path, [])
 	var unit: Unit
-	if pool.is_empty(): unit = scene.instantiate()
+	if _pool.is_empty(): unit = SCENE.instantiate()
 	else:
-		unit = pool.pop_back()
+		unit = _pool.pop_back()
 		reused += 1
+	unit.set_type(type)
+	unit.faction = faction
 	unit.transform = Transform3D(Basis.IDENTITY, position)
 	parent.add_child(unit)
 	unit.reset_physics_interpolation()

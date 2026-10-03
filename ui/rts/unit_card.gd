@@ -21,11 +21,14 @@ func setup(num: int, unt: Unit) -> void:
 	index = num
 	unit = unt
 	unit.selected.connect(Callable(_on_set_selected))
-	
-	button.icon = unit.portrait
+	unit.type_changed.connect(Callable(_on_type_changed))
+	_on_type_changed()
 
 func _on_button_pressed() -> void:
 	card_selected.emit(self)
 
 func _on_set_selected(value: bool) -> void:
 	is_selected = value
+
+func _on_type_changed() -> void:
+	button.icon = unit.type.portrait

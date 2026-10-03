@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="Faction" format=3 uid="uid://w1lpudhbjs0o"]
+
+[ext_resource type="Script" uid="uid://chkksi7jgune" path="res://factions/faction.gd" id="1_faction"]
+[ext_resource type="Script" uid="uid://2sbn5drq587w" path="res://units/unit_type.gd" id="2_type"]
+[ext_resource type="Resource" uid="uid://bu2t6xurs6a5b" path="res://units/types/red_capsule.tres" id="3_capsule"]
+
+[resource]
+script = ExtResource("1_faction")
+title = "Red"
+color = Color(0.980392, 0.427451, 0.341176, 1)
+roster = Array[ExtResource("2_type")]([ExtResource("3_capsule")])

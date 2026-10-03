@@ -3,10 +3,13 @@
 [ext_resource type="PackedScene" uid="uid://c255mfpdlax5t" path="res://user/user.tscn" id="1_02coj"]
 [ext_resource type="Script" uid="uid://bwyunalip7vr0" path="res://world/maps/map.gd" id="1_ui85b"]
 [ext_resource type="PackedScene" uid="uid://b2qbrqpdtg640" path="res://world/buildings/resource/spawns/stone_pile_demo.tscn" id="2_0krni"]
-[ext_resource type="PackedScene" uid="uid://7pi40oo2sj4y" path="res://units/unit_scenes/green_capsule.tscn" id="3_juqk2"]
+[ext_resource type="PackedScene" uid="uid://bwl1yw33tcmm4" path="res://units/unit.tscn" id="3_juqk2"]
 [ext_resource type="Texture2D" uid="uid://dc0baus7ni7bp" path="res://world/environments/overcast_soil_puresky_1k.hdr" id="3_u7d17"]
 [ext_resource type="Script" uid="uid://bnxy0ta2hvx1x" path="res://items/strategic_resource.gd" id="4_iucdn"]
-[ext_resource type="PackedScene" uid="uid://dpowhl5rmifsj" path="res://units/unit_scenes/red_capsule.tscn" id="4_ixtye"]
+[ext_resource type="Resource" uid="uid://r7fet4hfoufp" path="res://units/types/green_capsule.tres" id="12_gtype"]
+[ext_resource type="Resource" uid="uid://bu2t6xurs6a5b" path="res://units/types/red_capsule.tres" id="13_rtype"]
+[ext_resource type="Resource" uid="uid://575w48agn3pq" path="res://factions/green.tres" id="14_gfact"]
+[ext_resource type="Resource" uid="uid://w1lpudhbjs0o" path="res://factions/red.tres" id="15_rfact"]
 [ext_resource type="Texture2D" uid="uid://bvrbfibd28dwn" path="res://world/terrain/BlendMap.png" id="5_h46m8"]
 [ext_resource type="Shader" uid="uid://de03x0khyw5cw" path="res://world/terrain/texture_blend.gdshader" id="6_pe6vi"]
 [ext_resource type="Texture2D" uid="uid://kbbr4j7wonwj" path="res://world/terrain/grass_rgba.dds" id="7_mth5w"]
@@ -287,18 +290,30 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 193.039, 0, -201.327)
 
 [node name="GreenCapsule" parent="units" unique_id=1953712007 instance=ExtResource("3_juqk2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.95276, 0.82967, 0.235183)
+type = ExtResource("12_gtype")
+faction = ExtResource("14_gfact")
 
 [node name="GreenCapsule2" parent="units" unique_id=368563680 instance=ExtResource("3_juqk2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.03863, 1.13326, 0.1819)
+type = ExtResource("12_gtype")
+faction = ExtResource("14_gfact")
 
 [node name="GreenCapsule3" parent="units" unique_id=1354016031 instance=ExtResource("3_juqk2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 1, 5)
+type = ExtResource("12_gtype")
+faction = ExtResource("14_gfact")
 
-[node name="RedCapsule" parent="units" unique_id=1584889789 instance=ExtResource("4_ixtye")]
+[node name="RedCapsule" parent="units" unique_id=1584889789 instance=ExtResource("3_juqk2")]
 transform = Transform3D(-0.821289, 0, 0.570513, 0, 1, 0, -0.570513, 0, -0.821289, 0, 1, -8)
+type = ExtResource("13_rtype")
+faction = ExtResource("15_rfact")
 
-[node name="RedCapsule2" parent="units" unique_id=2135593006 instance=ExtResource("4_ixtye")]
+[node name="RedCapsule2" parent="units" unique_id=2135593006 instance=ExtResource("3_juqk2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -11)
+type = ExtResource("13_rtype")
+faction = ExtResource("15_rfact")
 
-[node name="RedCapsule3" parent="units" unique_id=1588854293 instance=ExtResource("4_ixtye")]
+[node name="RedCapsule3" parent="units" unique_id=1588854293 instance=ExtResource("3_juqk2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 1, -14)
+type = ExtResource("13_rtype")
+faction = ExtResource("15_rfact")

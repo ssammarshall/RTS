@@ -15,6 +15,8 @@ enum Detail { FULL, REDUCED, DORMANT }
 
 # Components.
 @export var selectable: SelectableObject
+@export var model: MeshInstance3D
+@export var nose: MeshInstance3D
 var path_finder: PathFinder
 var think_task: ThinkTask
 var detail := Detail.REDUCED # No body until Units sets the unit's level.
@@ -23,12 +25,17 @@ var acting_index := -1
 var grid_handle := -1
 var body: RigidBody3D # From the Units pool while the unit is Full.
 
+# Set in the inspector for a unit placed in a scene, and by Units.spawn. Change the type with set_type.
+@export var type: UnitType
+@export var faction: Faction
+var identity: UnitIdentity # Kept through type and faction changes, cleared on release.
+signal type_changed
+
 # Jobs.
 var current_job: Job
 
 # Selection.
 signal selected(value: bool)
-@export var portrait: Texture2D
 var group_num: int = -1
 
 # Allow Commands to be given to unit.
@@ -38,26 +45,23 @@ var command_queue: Array[UnitCommand]
 # Pathing used with PathFinder.
 var pathing: bool = false
 
-# Movement.
-@export_group("Stats")
-@export var base_speed: float = 5.0
-@export var turn_speed: float = 10.0
-@export var run_speed: float = 8.0
-@export var crouch_speed: float = 3.0
-@export var jump_height: float = 3.0
-@export var current_speed: float = 10
+# From the type, read every tick.
+var current_speed := 10.0
+var turn_speed := 10.0
+var height := 2.0
+var radius := 0.5 # Of the body's capsule.
+var reach := 1.5 # How close the unit has to be to a building's area to interact with it.
+var lowest_detail := Detail.DORMANT
 
 # Inventory
 var inventory: Inventory = Inventory.new()
 
-var height: float = 2.0
-var radius := 0.5 # Of the body's capsule.
-var reach := 1.5 # How close the unit has to be to a building's area to interact with it.
 var push := Vector2.ZERO # Away from the unit's neighbours, from Units.
 var velocity := Vector3.ZERO
 
 static var _controller := UnitController.new()
 
+var _applied_type: UnitType
 var _yaw := 0.0
 var _thinking := false
 var _rethink := false
@@ -73,6 +77,7 @@ func _ready() -> void:
 	select(false)
 
 func _enter_tree() -> void:
+	if type != _applied_type: set_type(type)
 	think_task = Scheduler.add(think, INF)
 	_snap_to_ground()
 	Units.register(self)
@@ -85,6 +90,38 @@ func _exit_tree() -> void:
 		_detach_body()
 		detail = Detail.REDUCED
 	Units.unregister(self)
+
+# The type's look, stats and carry limit; a job the type doesn't allow is dropped. A registered unit also stands at
+# its new height, takes a body of its new size, and is kept at or above the type's lowest detail level.
+func set_type(value: UnitType) -> void:
+	var resized := value.radius != radius or value.height != height
+	type = value
+	_applied_type = value
+	current_speed = value.speed
+	turn_speed = value.turn_speed
+	height = value.height
+	radius = value.radius
+	reach = value.reach
+	lowest_detail = value.lowest_detail
+	inventory.resource_limit = value.carry_limit
+	model.mesh = value.mesh
+	model.material_override = value.material
+	if resized: _fit_to_size()
+	if current_job and not value.allows_job(current_job): set_job(null)
+	if registry_index >= 0:
+		if resized:
+			if body: _detach_body()
+			_snap_to_ground()
+			if detail == Detail.FULL: _attach_body()
+		Units.retyped(self)
+	type_changed.emit()
+
+# The nose on the front of the capsule and the selection ring around its feet.
+func _fit_to_size() -> void:
+	nose.position = Vector3(0.0, height * 0.21, -radius)
+	var ring := selectable.highlight as Decal
+	ring.size = Vector3(radius * 4.0, ring.size.y, radius * 4.0)
+	ring.position.y = 0.05 - height * 0.5
 
 # Called every tick by Units while the unit isn't Dormant.
 func act(delta: float, heightmap: Heightmap) -> void:
@@ -183,7 +220,7 @@ func set_detail(level: Detail) -> void:
 	if level == Detail.FULL: _attach_body()
 
 func _attach_body() -> void:
-	body = Units.take_body()
+	body = Units.take_body(radius, height)
 	body.global_transform = Transform3D(Basis(Vector3.UP, _yaw), global_position)
 	body.linear_velocity = velocity
 	body.angular_velocity = Vector3.ZERO
@@ -239,6 +276,7 @@ func reset() -> void:
 	velocity = Vector3.ZERO
 	push = Vector2.ZERO
 	_yaw = 0.0
+	identity = null
 	select(false)
 	group_num = -1
 
