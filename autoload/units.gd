@@ -232,6 +232,7 @@ func _spawn(scene: PackedScene, parent: Node, position: Vector3, on_spawned: Cal
 		reused += 1
 	unit.transform = Transform3D(Basis.IDENTITY, position)
 	parent.add_child(unit)
+	unit.reset_physics_interpolation()
 	spawned += 1
 	if on_spawned.is_valid(): on_spawned.call(unit)
 

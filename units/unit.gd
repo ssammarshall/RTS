@@ -9,7 +9,7 @@ const STEP_ASIDE_SPEED := 4.0 # A standing unit's speed when pushed all the way.
 const PUSH_DEAD_ZONE := 0.1 # A standing unit ignores a smaller push, so a settled crowd stands still.
 const GROUND_MARGIN := 0.15 # A Full unit this close above the heightmap is on the ground.
 const STOPPED_SPEED := 0.1 # A standing Full unit slower than this puts its body to sleep.
-const ACCELERATION := 400.0 # And braking, of a Full unit's body: about a tick and a half to full speed, so it keeps pace with units without a body.
+const ACCELERATION := 400.0 # And braking, of a Full unit's body: full speed in 25 ms, so it keeps pace with units without a body.
 
 enum Detail { FULL, REDUCED, DORMANT }
 
@@ -189,10 +189,8 @@ func _attach_body() -> void:
 	body.angular_velocity = Vector3.ZERO
 	body.sleeping = false
 
+# The unit keeps the transform it last copied from its body, a tick behind the body, so it doesn't hop ahead.
 func _detach_body() -> void:
-	var xform := body.global_transform
-	global_transform = xform
-	_yaw = atan2(xform.basis.z.x, xform.basis.z.z)
 	velocity = Vector3(body.linear_velocity.x, 0.0, body.linear_velocity.z)
 	Units.return_body(body)
 	body = null
@@ -204,6 +202,7 @@ func _park() -> void:
 func _unpark() -> void:
 	if pathing: path_finder.jump()
 	_snap_to_ground()
+	reset_physics_interpolation()
 
 func _snap_to_ground() -> void:
 	var map := Map.current

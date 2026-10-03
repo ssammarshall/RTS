@@ -301,4 +301,5 @@ Backspace={
 
 [physics]
 
+common/max_physics_steps_per_frame=2
 3d/physics_engine="Jolt Physics"

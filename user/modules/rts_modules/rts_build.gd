@@ -11,6 +11,7 @@ func _init() -> void:
 
 func _on_start_building_placement(user: User, bldg: Building) -> void:
 	building = bldg
+	building.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF # The preview follows the mouse every frame.
 	
 	building.building_area.area_entered.connect(Callable(_on_area_entered))
 	building.building_area.area_exited.connect(Callable(_on_area_exited))

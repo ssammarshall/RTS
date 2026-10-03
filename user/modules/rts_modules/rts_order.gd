@@ -10,6 +10,7 @@ var formation_box: MeshInstance3D
 
 func start_order(user: User) -> void:
 	base = Node3D.new()
+	base.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF # The preview follows the mouse every frame.
 	user.get_tree().get_root().add_child(base)
 	
 	base.global_position = user.mouse_global_position
