@@ -17,3 +17,7 @@ func next_think(_unit: Unit) -> float:
 # Called once UnitCommand is finished or changed.
 func exit(_unit: Unit) -> void:
 	pass
+
+# Called when a Dormant Unit is promoted, before it jumps to where it would be by now.
+func unpark(_unit: Unit) -> void:
+	pass

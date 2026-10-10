@@ -14,6 +14,13 @@ var _connected_spawn: ResourceSpawn
 var _waiting := false
 var _replan := 0
 
+# Coarse trips: a Dormant unit that has jumped both legs of its loop makes the next trips with a TripCommand.
+static var coarse_trips := true # Off to compare with walking every leg.
+var _pile_leg := -1.0 # Length of the last leg to the pile, if it was jumped whole from where the loop leaves the building.
+var _pile_spot := Vector3.ZERO
+var _left_pile := false # The unit last left the pile on its loop, with a full load.
+var _steady := false # The unit last left the building where it arrives from the pile, empty.
+
 func _init() -> void:
 	pass
 
@@ -21,6 +28,7 @@ func think(unit: Unit, _delta: float) -> void:
 	if _replan == 0: return
 	var replan := _replan
 	_replan = 0
+	_settle_trip(unit)
 
 	if _waiting:
 		if replan & Replan.CAPACITY_AVAILABLE: start_schedule(unit)
@@ -35,6 +43,7 @@ func think(unit: Unit, _delta: float) -> void:
 		else: reevaluate(unit)
 
 func reevaluate(unit: Unit) -> void:
+	_settle_trip(unit)
 	if not anchor_valid():
 		unit.set_job(null)
 		return
@@ -77,6 +86,9 @@ func select_derived() -> void:
 func start_schedule(unit: Unit) -> void:
 	super.start_schedule(unit)
 	_waiting = false
+	_pile_leg = -1.0
+	_left_pile = false
+	_steady = false
 
 	select_derived()
 
@@ -104,6 +116,35 @@ func start_schedule(unit: Unit) -> void:
 
 	_connect(unit)
 	unit.set_command(get_current_command())
+
+# The loop's next command. A Dormant unit leaving the building, after jumping both legs of its loop whole, makes the
+# next trips coarsely. The trip's length comes from the legs' lengths, so late thinks don't stretch it. The leg to the
+# pile only counts from where the unit arrives at the building from the pile: its first visit (to fetch a tool, say) can
+# end on the far side.
+func next_command(previous: UnitCommand = null) -> UnitCommand:
+	var regular := previous == get_current_command() and _unit.detail == Unit.Detail.DORMANT and _replan == 0
+	var command := super.next_command(previous)
+	var leg := _unit.path_finder.jumped if regular else -INF
+	_unit.path_finder.jumped = 0.0 # A command that starts at its target walks no leg.
+	var carried := _unit.inventory.resource.amount if _unit.inventory.resource else 0
+	if (command as InteractCommand).target == resource_spawn: # Leaving the building.
+		var pile_leg := _pile_leg
+		_pile_leg = -1.0
+		_steady = regular and _left_pile and carried == 0
+		_left_pile = false
+		if _steady and pile_leg >= 0.0 and leg >= 0.0 and coarse_trips:
+			var tps := Engine.physics_ticks_per_second
+			var to_pile_end := _walk_ticks(pile_leg) + roundi(_unit.inventory.resource_limit * InteractCommand.INTERACT_INTERVAL * tps)
+			return TripCommand.new(self, to_pile_end + _walk_ticks(leg), to_pile_end, _pile_spot)
+	else: # Leaving the pile.
+		_left_pile = regular and carried == _unit.inventory.resource_limit
+		_pile_leg = leg if _left_pile and _steady else -1.0
+		_pile_spot = _unit.global_position
+	return command
+
+# Ticks a walking or jumping unit takes for a leg of `length`; it arrives on the first tick it's there by.
+func _walk_ticks(length: float) -> int:
+	return ceili(length / _unit.current_speed * Engine.physics_ticks_per_second)
 
 func set_first_command(command: InteractCommand) -> void:
 	schedule.clear()
@@ -148,6 +189,12 @@ func _disconnect() -> void:
 		if _connected_spawn.depleted.is_connected(_on_spawn_depleted): _connected_spawn.depleted.disconnect(_on_spawn_depleted)
 	_connected_building = null
 	_connected_spawn = null
+
+# A unit on coarse trips is put where its trip has got to before anything re-plans it.
+func _settle_trip(unit: Unit) -> void:
+	if unit.command is TripCommand:
+		(unit.command as TripCommand).settle(unit)
+		unit.wake()
 
 func _unit_active() -> bool:
 	return is_instance_valid(_unit) and _unit.is_inside_tree()

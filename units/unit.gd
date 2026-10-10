@@ -235,6 +235,7 @@ func _park() -> void:
 	path_finder.start_jumping()
 
 func _unpark() -> void:
+	if command: command.unpark(self)
 	if pathing: path_finder.jump()
 	_snap_to_ground()
 	reset_physics_interpolation()
@@ -298,6 +299,7 @@ func clear_commands() -> void:
 	set_command(null)
 
 func set_command(cmnd: UnitCommand) -> void:
+	var previous := command
 	if command: # Disconnect and exit current command.
 		command.finished.disconnect(Callable(_on_command_finished))
 		command.exit(self)
@@ -306,5 +308,5 @@ func set_command(cmnd: UnitCommand) -> void:
 		command.finished.connect(Callable(_on_command_finished))
 		command.enter(self)
 	elif command_queue.size() > 0: set_command(command_queue.pop_front()) # Next command in queue.
-	elif current_job: set_command(current_job.next_command()) # Next command for current job.
+	elif current_job: set_command(current_job.next_command(previous)) # Next command for current job.
 	wake()

@@ -14,6 +14,7 @@ var unit: Unit
 var target := Vector3.ZERO
 var desired_velocity := Vector3.ZERO
 var desired_yaw := 0.0
+var jumped := 0.0 # How far a Dormant unit has jumped along this leg; -INF if it walked part of it.
 
 var _path := PackedVector3Array()
 var _index := 0
@@ -84,9 +85,11 @@ func steer() -> void:
 	desired_velocity = Vector3(dir.x, 0.0, dir.y) * unit.current_speed
 	desired_yaw = atan2(-dir.x, -dir.y)
 
-func start_jumping() -> void:
-	_jump_tick = Scheduler.tick
+# Jumps count from `ticks_ago`: a leg a Dormant unit has been walking that long. The leg isn't jumped whole.
+func start_jumping(ticks_ago := 0) -> void:
+	_jump_tick = Scheduler.tick - ticks_ago
 	_arrival_index = -1
+	jumped = -INF
 
 # A Dormant unit moves as far along its path as it would have walked since the last jump.
 func jump() -> void:
@@ -96,17 +99,20 @@ func jump() -> void:
 	if _arrival_index < 0: _find_arrival()
 	var pos := unit.global_position
 	var lift := Vector3.UP * unit.height * 0.5
+	var budget := distance
 	while true:
 		var point := _arrival_point if _index >= _arrival_index else _path[_index] + lift
 		var step := Vector2(point.x - pos.x, point.z - pos.z).length()
 		if step > distance:
 			unit.global_position = pos.lerp(point, distance / step)
+			jumped += budget
 			return
 		distance -= step
 		pos = point
 		if _index >= _arrival_index: break
 		_index += 1
 	unit.global_position = pos
+	jumped += budget - distance
 	_arrive()
 
 # Seconds until a Dormant unit arrives, capped at `limit`, so its next jump lands on arrival.
@@ -163,6 +169,7 @@ func _start_leg(pos: Vector3, route := "", reach: Building = null) -> void:
 	_route = route
 	_reach = reach
 	_jump_tick = Scheduler.tick
+	jumped = 0.0 if unit.detail == Unit.Detail.DORMANT else -INF
 	unit.pathing = true
 	_request_path(true)
 	unit.wake()

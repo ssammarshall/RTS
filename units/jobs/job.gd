@@ -10,7 +10,8 @@ func start_schedule(_unit: Unit) -> void:
 func get_current_command() -> UnitCommand:
 	return schedule[current_command_index]
 
-func next_command() -> UnitCommand:
+# `previous` is the command that just ended.
+func next_command(_previous: UnitCommand = null) -> UnitCommand:
 	current_command_index += 1
 	if current_command_index >= schedule.size(): current_command_index = 0
 	
