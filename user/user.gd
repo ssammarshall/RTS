@@ -31,6 +31,7 @@ var rts_controller: RTSController # Input.
 # Unit and Group variables.
 signal clear_all_selected
 signal control_group_set(num: int)
+@export var faction: Faction # Only its units can be selected; without one, any unit can.
 @export var available_units: Array[Unit]
 var control_groups: Array[Group] # First control group is always the currently selected group.
 var hold_group: bool = false # Controls whether or not selected objects should be held if holding shift or ctrl.
@@ -82,6 +83,9 @@ func _physics_process(_delta: float) -> void:
 
 func set_mode(mode: MODE) -> void:
 	current_mode = mode
+
+func owns(unit: Unit) -> bool:
+	return faction == null or unit.faction == faction
 
 func get_selected_group() -> Group:
 	return control_groups[0]

@@ -42,10 +42,11 @@ func cast_unit_selection(user: User, dragbox: Rect2) -> void:
 				break
 	# Check if mouse is hovering unit.
 	var hovered := Units.pick(user.camera_rig.camera, user.camera_rig.mouse_current_position)
-	if hovered and user.available_units.has(hovered): select_unit(user, hovered)
+	if hovered: select_unit(user, hovered)
 
 # Highlight Unit and add to control_groups[0].
 func select_unit(user: User, unit: Unit) -> void:
+	if not user.owns(unit): return
 	if user.control_groups[0].units.has(unit):return
 	else:user.control_groups[0].add_unit(unit)
 	unit.select(true)
@@ -59,6 +60,7 @@ func deselect_unit(user: User, unit: Unit) -> void:
 # Highlight and add all Units to control_groups[0].
 func select_all_units(user: User) -> void:
 	for unit in user.available_units:
+		if not user.owns(unit): continue
 		if !user.control_groups[0].has(unit):user.control_groups[0].add_unit(unit)
 		unit.select(true)
 
