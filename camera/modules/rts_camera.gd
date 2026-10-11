@@ -30,7 +30,6 @@ var camera_rotate_mouse: bool = false:
 		camera_can_auto_pan = !value # Temporarily disable auto pan when rotating camera with mouse.
 
 func physics_update(camera_rig: CameraRig, delta: float) -> void:
-	camera_rig.mouse_current_position = camera_rig.get_viewport().get_mouse_position()
 	camera_move(camera_rig, delta)
 	camera_zoom(camera_rig, delta)
 	camera_auto_pan(camera_rig, delta)
@@ -77,9 +76,7 @@ func camera_zoom(camera_rig: CameraRig, delta: float) -> void:
 # Control camera auto panning with mouse.
 func camera_auto_pan(camera_rig: CameraRig, delta: float) -> void:
 	if not camera_can_auto_pan: return
-	
-	camera_rig.mouse_current_position = camera_rig.get_viewport().get_mouse_position()
-	
+
 	var viewport_visible_rectangle: Rect2i = Rect2i(camera_rig.get_viewport().get_visible_rect())
 	var viewport_size: Vector2 = viewport_visible_rectangle.size
 	

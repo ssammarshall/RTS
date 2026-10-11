@@ -49,6 +49,7 @@ func _ready() -> void:
 
 # Called by User to update Camera Rig.
 func _physics_process(delta: float) -> void:
+	mouse_current_position = get_viewport().get_mouse_position()
 	match current_mode:
 		MODE.RTS:
 			rts_camera.physics_update(self, delta)
