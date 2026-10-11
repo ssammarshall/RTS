@@ -1,7 +1,6 @@
 class_name UnitType extends Resource
 # What every unit of a type shares (Type Object / Flyweight). Unit.set_type copies the stats it reads every tick.
 
-enum ControlTier { FULL, LIMITED }
 enum Action { SELF_ASSIGN = 1, FIGHT = 2, GIVE_ORDERS = 4, ABILITIES = 8 } # Moving and interacting are open to every unit.
 
 @export var title := ""
@@ -21,7 +20,6 @@ enum Action { SELF_ASSIGN = 1, FIGHT = 2, GIVE_ORDERS = 4, ABILITIES = 8 } # Mov
 
 @export_group("Control")
 @export var allowed_jobs: Array[Script] = []
-@export var control_tier: ControlTier = ControlTier.FULL
 @export_flags("Self-assign jobs", "Fight", "Give orders", "Abilities") var actions := 15
 @export var lowest_detail: Unit.Detail = Unit.Detail.DORMANT # Its units never drop below this simulation detail level.
 
