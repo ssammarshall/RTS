@@ -100,6 +100,19 @@ func moved(unit: Unit) -> void:
 # After a registered unit's type changed: its radius in the grid, and at least the type's lowest detail level.
 func retyped(unit: Unit) -> void:
 	grid.set_radius(unit.grid_handle, unit.radius)
+	_raise(unit)
+
+# Keeps the unit at `level` or higher, whatever the camera, until it's unpinned or released.
+func pin(unit: Unit, level: Unit.Detail) -> void:
+	unit.pinned_detail = level
+	unit.lowest_detail = mini(unit.type.lowest_detail, level) as Unit.Detail
+	if unit.registry_index >= 0: _raise(unit)
+
+func unpin(unit: Unit) -> void:
+	unit.pinned_detail = Unit.Detail.DORMANT
+	unit.lowest_detail = unit.type.lowest_detail
+
+func _raise(unit: Unit) -> void:
 	if unit.detail <= unit.lowest_detail: return
 	unit.set_detail(unit.lowest_detail)
 	_update_acting(unit)

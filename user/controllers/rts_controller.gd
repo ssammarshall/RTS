@@ -51,8 +51,7 @@ func _init(u: User) -> void:
 	SignalBus.unit_focus.connect(Callable(_on_unit_focus))
 
 func _on_unit_focus(unit: Unit) -> void:
-	#camera_rig.follow_unit(unit)
-	rts_camera.set_camera_focus_pos(camera_rig, unit.global_position)
+	camera_rig.follow(unit)
 
 func handle_input(event: InputEvent) -> void:
 	if event is InputEventKey:
@@ -151,6 +150,11 @@ func input_event_key(event: InputEventKey) -> void:
 		return
 	
 	if event.is_action_pressed("Enter"):
+		return
+
+	if event.is_action_pressed("Space"):
+		if camera_rig.current_mode == CameraRig.MODE.UNIT_FOLLOW: camera_rig.stop_following()
+		elif user.get_selected_group().size() > 0: camera_rig.follow(user.get_selected_group().units[0])
 		return
 	
 	if event.is_action_pressed("Number"):

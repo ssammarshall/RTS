@@ -51,6 +51,7 @@ var height := 2.0
 var radius := 0.5 # Of the body's capsule.
 var reach := 1.5 # How close the unit has to be to a building's area to interact with it.
 var lowest_detail := Detail.DORMANT
+var pinned_detail := Detail.DORMANT # Set by Units.pin.
 
 # Inventory
 var inventory: Inventory = Inventory.new()
@@ -101,7 +102,7 @@ func set_type(value: UnitType) -> void:
 	height = value.height
 	radius = value.radius
 	reach = value.reach
-	lowest_detail = value.lowest_detail
+	lowest_detail = mini(value.lowest_detail, pinned_detail) as Detail
 	inventory.resource_limit = value.carry_limit
 	model.mesh = value.mesh
 	model.material_override = value.material
@@ -283,6 +284,7 @@ func reset() -> void:
 	push = Vector2.ZERO
 	_yaw = 0.0
 	identity = null
+	pinned_detail = Detail.DORMANT
 	select(false)
 	group_num = -1
 

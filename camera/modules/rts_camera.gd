@@ -29,20 +29,12 @@ var camera_rotate_mouse: bool = false:
 		camera_rotate_mouse = value
 		camera_can_auto_pan = !value # Temporarily disable auto pan when rotating camera with mouse.
 
-# Camera focus.
-var camera_focus_pos := Vector3.ZERO # DO NOT SET DIRECTLY. USE SET_CAMERA_FOCUS_POS().
-var focus_rotation := 0.0
-var camera_is_focused: bool = false
-
 func physics_update(camera_rig: CameraRig, delta: float) -> void:
 	camera_rig.mouse_current_position = camera_rig.get_viewport().get_mouse_position()
-	if camera_is_focused:
-		camera_focus(camera_rig, delta)
-	else:
-		camera_move(camera_rig, delta)
-		camera_zoom(camera_rig, delta)
-		camera_auto_pan(camera_rig, delta)
-		camera_rotate(camera_rig, delta)
+	camera_move(camera_rig, delta)
+	camera_zoom(camera_rig, delta)
+	camera_auto_pan(camera_rig, delta)
+	camera_rotate(camera_rig, delta)
 
 # Control camera movement.
 func camera_move(camera_rig: CameraRig, delta: float) -> void:
@@ -134,43 +126,3 @@ func camera_rotate(camera_rig: CameraRig, delta: float) -> void:
 	# Rotate with keypad.
 	if camera_rotate_keypad:
 		user.rotation.y += camera_rotation_direction * camera_rotation_speed * delta
-
-# Transform camera to focus on a position.
-func camera_focus(camera_rig: CameraRig, delta: float) -> void:
-	if camera_focus_pos == Vector3.ZERO: return
-	
-	var user: User = camera_rig.user
-	
-	user.global_position = lerp(user.global_position, camera_focus_pos, delta * 2.5)
-	user.rotation.y = lerp_angle(user.rotation.y, focus_rotation, delta * 2.5)
-	
-	var rotation_difference: float = absf(user.rotation.y - focus_rotation)
-	if user.global_position.distance_to(camera_focus_pos) < 2 and rotation_difference < 0.1:
-		camera_is_focused = false
-
-# Also calculates focus_rotation and sets camera_is_focused.
-func set_camera_focus_pos(camera_rig: CameraRig, pos: Vector3) -> void:
-	var user: User = camera_rig.user
-	
-	if not user:
-		camera_focus_pos = Vector3.ZERO
-		return
-	
-	var direction_to_pos: Vector3 = user.global_position - pos
-	
-	camera_focus_pos = (direction_to_pos.normalized() * user.position.y) + pos
-	if camera_focus_pos.y < 0: camera_focus_pos.y = 0
-	
-	var forward_direction := user.global_transform.basis.z
-	var forward_2d := Vector2(forward_direction.x, forward_direction.z)
-	var direction_to_pos_2d := Vector2(direction_to_pos.x, direction_to_pos.z)
-	
-	focus_rotation = forward_2d.angle_to(direction_to_pos_2d)
-	focus_rotation = user.rotation.y - focus_rotation
-	
-	camera_is_focused = true
-
-
-func follow_unit(camera_rig: CameraRig, u: Unit) -> void:
-	if not u == null: camera_rig.unit = u
-	else: return
