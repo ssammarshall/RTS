@@ -1,7 +1,7 @@
 extends Node
 # Unit registry, simulation detail levels, spawning and the act step. A round robin over the registry compares each unit with the camera:
-# Full in view within FULL_DISTANCE, Reduced in view further out or off screen within NEAR_DISTANCE, Dormant otherwise, but never below
-# the unit type's lowest level. Promotions happen at once, demotions after DEMOTE_DELAY. Spawns are queued and reuse released units.
+# Full in view within FULL_DISTANCE, Reduced in view within far_distance or off screen within NEAR_DISTANCE, Dormant otherwise, but never
+# below the unit type's lowest level. Promotions happen at once, demotions after DEMOTE_DELAY. Spawns are queued and reuse released units.
 # Each tick, transitions and then spawns stop once budget_usec is used; at least one spawn runs per tick.
 # Then every unit that isn't Dormant acts (steers and moves), from one loop. Every unit is in `grid` at its last position.
 # Units don't collide with each other: each acting unit takes a push away from its grid neighbours every `separation_ticks`.
@@ -15,8 +15,10 @@ const DEMOTE_DELAY := 1.0
 const GRID_CELL := 8.0
 const PICK_HEIGHT := 2.5 # Picking looks along the mouse ray where it's lower than this above the ground.
 const SEPARATION_GAP := 0.2 # Units push apart while closer than their two radii plus this.
+const FAR_FADE := 10.0
 
 var budget_usec := 1000
+var far_distance := 200.0
 var separation_ticks := 2
 var detail_enabled := true
 var act_enabled := true # Off while the harness runs and times the act step itself.
@@ -112,12 +114,23 @@ func unpin(unit: Unit) -> void:
 	unit.pinned_detail = Unit.Detail.DORMANT
 	unit.lowest_detail = unit.type.lowest_detail
 
+# Drawn up to far_distance, fading out over the last 2 × FAR_FADE m.
+func fit_far_ring(visual: VisualInstance3D) -> void:
+	if visual is Decal:
+		visual.distance_fade_enabled = true
+		visual.distance_fade_begin = far_distance - FAR_FADE * 2.0
+		visual.distance_fade_length = FAR_FADE * 2.0
+	elif visual is GeometryInstance3D:
+		visual.visibility_range_end = far_distance - FAR_FADE
+		visual.visibility_range_end_margin = FAR_FADE
+		visual.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+
 func _raise(unit: Unit) -> void:
 	if unit.detail <= unit.lowest_detail: return
 	unit.set_detail(unit.lowest_detail)
 	_update_acting(unit)
 
-# The unit under `screen_pos`: of the units whose capsule the camera ray passes through, the nearest to the camera.
+# The unit under `screen_pos`: of the units within far_distance whose capsule the camera ray passes through, the nearest to the camera.
 func pick(camera: Camera3D, screen_pos: Vector2) -> Unit:
 	var origin := camera.project_ray_origin(screen_pos)
 	var dir := camera.project_ray_normal(screen_pos)
@@ -131,8 +144,9 @@ func pick(camera: Camera3D, screen_pos: Vector2) -> Unit:
 	var best: Unit = null
 	var best_distance := INF
 	for unit: Unit in _picked:
-		var axis := Vector3.UP * (unit.height * 0.5 - unit.radius)
 		var center := unit.global_position
+		if origin.distance_squared_to(center) > far_distance * far_distance: continue
+		var axis := Vector3.UP * (unit.height * 0.5 - unit.radius)
 		var closest := Geometry3D.get_closest_points_between_segments(origin, far, center - axis, center + axis)
 		if closest[0].distance_squared_to(closest[1]) > unit.radius * unit.radius: continue
 		var distance := origin.distance_squared_to(closest[0])
@@ -270,6 +284,6 @@ func _spawn(type: UnitType, faction: Faction, parent: Node, position: Vector3, o
 
 func _wanted_detail(pos: Vector3, camera: Camera3D, eye: Vector3) -> Unit.Detail:
 	var distance := pos.distance_squared_to(eye)
-	if camera.is_position_in_frustum(pos):
+	if distance <= far_distance * far_distance and camera.is_position_in_frustum(pos):
 		return Unit.Detail.FULL if distance <= FULL_DISTANCE * FULL_DISTANCE else Unit.Detail.REDUCED
 	return Unit.Detail.REDUCED if distance <= NEAR_DISTANCE * NEAR_DISTANCE else Unit.Detail.DORMANT

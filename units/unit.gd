@@ -75,6 +75,8 @@ func _init() -> void:
 
 func _ready() -> void:
 	select(false)
+	Units.fit_far_ring(model)
+	Units.fit_far_ring(selectable.highlight)
 
 func _enter_tree() -> void:
 	if type != _applied_type: set_type(type)

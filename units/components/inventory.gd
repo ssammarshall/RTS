@@ -13,6 +13,7 @@ func equip(item_data: ItemData, unit: Unit) -> void:
 	item.durability = item_data.max_durability
 	if equipped_item: unequip(unit)
 	equipped_item = item
+	for visual in item.find_children("*", "VisualInstance3D", true, false): Units.fit_far_ring(visual)
 	unit.add_child(equipped_item)
 
 func has_item(type: ItemData.Type) -> bool:
