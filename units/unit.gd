@@ -298,6 +298,10 @@ func clear_commands() -> void:
 	command_queue.clear()
 	set_command(null)
 
+func take_control() -> void:
+	set_job(null)
+	clear_commands()
+
 func set_command(cmnd: UnitCommand) -> void:
 	var previous := command
 	if command: # Disconnect and exit current command.
