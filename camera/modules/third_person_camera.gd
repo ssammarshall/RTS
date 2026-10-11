@@ -18,7 +18,8 @@ const ZOOM_RATE := 10.0
 const LOOK := 0.0025
 const MIN_RTS_HEIGHT := 10.0
 const WIND_VOLUME := -8.0
-const WIND_SWEEP := 0.1
+const WIND_SWEEP_FROM := -0.1
+const WIND_SWEEP_TO := 0.4
 
 enum Flight { NONE, IN, OUT }
 
@@ -91,10 +92,13 @@ func _start(camera_rig: CameraRig, kind: Flight) -> void:
 	wind.volume_db = WIND_VOLUME
 	wind.play()
 
-# Up flying in, down flying out, around the pitch that fits the sound to the flight; linear, so it still ends with it.
+# Up flying in, down flying out, around the pitch that fits the sound to the flight, divided by the sweep's average
+# so the sound still ends with the flight.
 func _sweep_wind(camera_rig: CameraRig) -> void:
-	var sweep := WIND_SWEEP if flight == Flight.IN else -WIND_SWEEP
-	camera_rig.wind.pitch_scale = _wind_pitch * (1.0 + sweep * (5.0 * minf(_t / fly_time, 1.0) - 1.0))
+	var side := 1.0 if flight == Flight.IN else -1.0
+	var bend := side * lerpf(WIND_SWEEP_FROM, WIND_SWEEP_TO, minf(_t / fly_time, 1.0))
+	var mean := side * (WIND_SWEEP_FROM + WIND_SWEEP_TO) * 0.5
+	camera_rig.wind.pitch_scale = _wind_pitch * (1.0 + bend) / (1.0 + mean)
 
 # Where the unit is, or was when it left.
 func _track(camera_rig: CameraRig) -> void:
