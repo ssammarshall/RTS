@@ -18,6 +18,7 @@ const ZOOM_RATE := 10.0
 const LOOK := 0.0025
 const MIN_RTS_HEIGHT := 10.0
 const WIND_VOLUME := -8.0
+const WIND_SWEEP := 0.1
 
 enum Flight { NONE, IN, OUT }
 
@@ -33,6 +34,7 @@ var _rts_height := 0.0
 var _rts_pitch := 0.0
 var _spot := Vector3.ZERO
 var _rise := 0.0
+var _wind_pitch := 1.0
 
 func fly_in(camera_rig: CameraRig) -> void:
 	_rts_height = camera_rig.user.global_position.y
@@ -60,6 +62,7 @@ func physics_update(camera_rig: CameraRig, delta: float) -> void:
 		arm.spring_length = lerpf(arm.spring_length, distance, minf(ZOOM_RATE * delta, 1.0))
 		return
 	_t += delta
+	_sweep_wind(camera_rig)
 	var into := flight == Flight.IN
 	var blend := smoothstep(0.0, fly_time, _t)
 	camera_rig.user.global_position = _from_position.lerp(pivot if into else _rts_spot(camera_rig), blend)
@@ -83,9 +86,15 @@ func _start(camera_rig: CameraRig, kind: Flight) -> void:
 	fly_time = lerpf(MIN_FLY_TIME, MAX_FLY_TIME, clampf(_from_position.distance_to(to) / FAR_FLIGHT, 0.0, 1.0))
 	var wind := camera_rig.wind
 	if not wind.stream: return
-	wind.pitch_scale = wind.stream.get_length() / fly_time
+	_wind_pitch = wind.stream.get_length() / fly_time
+	_sweep_wind(camera_rig)
 	wind.volume_db = WIND_VOLUME
 	wind.play()
+
+# Up flying in, down flying out, around the pitch that fits the sound to the flight; linear, so it still ends with it.
+func _sweep_wind(camera_rig: CameraRig) -> void:
+	var sweep := WIND_SWEEP if flight == Flight.IN else -WIND_SWEEP
+	camera_rig.wind.pitch_scale = _wind_pitch * (1.0 + sweep * (5.0 * minf(_t / fly_time, 1.0) - 1.0))
 
 # Where the unit is, or was when it left.
 func _track(camera_rig: CameraRig) -> void:
