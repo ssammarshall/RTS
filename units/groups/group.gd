@@ -1,4 +1,4 @@
-class_name Group extends Node3D
+class_name Group extends RefCounted
 
 # Identifier.
 var group_number: int

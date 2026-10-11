@@ -1,4 +1,4 @@
-class_name Controller extends Node
+class_name Controller extends RefCounted
 # Abstract class to handle inputs from a User.
 
 func handle_input(_event: InputEvent) -> void:

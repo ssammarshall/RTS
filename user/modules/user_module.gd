@@ -1,4 +1,4 @@
-class_name UserModule extends Node
+class_name UserModule extends RefCounted
 # Abstract class for modules handled by a User's ControllerModules.
 
 func update(_user: User, _delta: float) -> void:
