@@ -30,6 +30,8 @@ func handle_input(event: InputEvent) -> void:
 		user.leave_unit()
 	elif event.is_action_pressed("E"):
 		unit_interact.interact(user)
+	elif event.is_action_pressed("F"):
+		unit_interact.self_assign(user)
 	elif event is InputEventKey and not event.is_echo():
 		var down := event.is_pressed()
 		if event.is_action("W"): forward = down
