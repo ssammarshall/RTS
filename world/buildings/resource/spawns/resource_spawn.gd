@@ -48,6 +48,13 @@ func extract(amount := 1) -> int:
 func unit_interaction(unit: Unit) -> void:
 	gather(unit, 1)
 
+func interaction_name(unit: Unit) -> String:
+	var inventory := unit.inventory
+	if resource.amount <= 0: return ""
+	if get_item_type() != ItemData.Type.NONE and not inventory.has_item(get_item_type()): return ""
+	if inventory.resource and inventory.resource.type == resource.type and inventory.resource.amount >= inventory.resource_limit: return ""
+	return "Gather"
+
 # Up to `times` gathering interactions, each taking one resource with one use of the tool. False once the unit has to
 # stop: it lacks the tool, its load is full or the spawn is empty (the interaction after that finishes the command).
 func gather(unit: Unit, times: int) -> bool:

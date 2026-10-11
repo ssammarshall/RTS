@@ -83,6 +83,14 @@ func consume_resource(amount: int) -> int:
 	if was_full and resource.amount < resource_limit: capacity_available.emit(self)
 	return drained
 
+func interaction_name(unit: Unit) -> String:
+	if not construction_complete: return "Build"
+	var carried := unit.inventory.resource
+	if carried and carried.type == resource.type and carried.amount > 0 and resource.amount < resource_limit: return "Deposit"
+	if get_item_type() != ItemData.Type.NONE and not unit.inventory.has_item(get_item_type()):
+		return "Take " + (ItemData.Type.keys()[get_item_type()] as String).capitalize()
+	return ""
+
 func unit_interaction(unit: Unit) -> void:
 	if get_item_type() != ItemData.Type.NONE and not unit.inventory.has_item(get_item_type()):
 		unit.inventory.equip(item_data, unit)

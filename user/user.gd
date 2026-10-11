@@ -4,6 +4,7 @@ class_name User extends Node3D
 @onready var gui: GUI = $GUI
 @onready var dragbox: NinePatchRect = $Control/Dragbox
 @onready var camera_rig: CameraRig = $CameraRig
+@onready var third_person_hud: ThirdPersonHUD = $ThirdPersonHUD
 
 enum MODE {
 	RTS,
@@ -72,8 +73,8 @@ func _process(delta: float) -> void:
 		MODE.UNIT_CONTROL:
 			third_person_controller.update(delta)
 
-func _physics_process(_delta: float) -> void:
-	pass
+func _physics_process(delta: float) -> void:
+	if current_mode == MODE.UNIT_CONTROL: third_person_controller.physics_update(delta)
 
 func set_mode(mode: MODE) -> void:
 	current_mode = mode
@@ -84,9 +85,11 @@ func take_over(unit: Unit) -> void:
 	gui.hide()
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	camera_rig.take_over(unit)
+	third_person_hud.show()
 	current_mode = MODE.UNIT_CONTROL
 
 func leave_unit() -> void:
+	third_person_hud.hide()
 	camera_rig.leave()
 
 func _on_landed() -> void:

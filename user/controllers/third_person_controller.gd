@@ -9,6 +9,7 @@ var left := false
 var right := false
 var run := false
 var crouch := false
+var unit_interact := UnitInteract.new()
 
 func _init(u: User) -> void:
 	user = u
@@ -27,6 +28,8 @@ func handle_input(event: InputEvent) -> void:
 		release_inputs()
 		if camera_rig.unit: camera_rig.unit.driven = false
 		user.leave_unit()
+	elif event.is_action_pressed("E"):
+		unit_interact.interact(user)
 	elif event is InputEventKey and not event.is_echo():
 		var down := event.is_pressed()
 		if event.is_action("W"): forward = down
@@ -37,6 +40,12 @@ func handle_input(event: InputEvent) -> void:
 		elif event.is_action("C"): crouch = down
 		else: return
 		_drive()
+
+# Walking cancels an interaction.
+func physics_update(delta: float) -> void:
+	var unit := camera_rig.unit
+	if unit and unit.command and unit.drive != Vector3.ZERO: unit.take_control()
+	unit_interact.physics_update(user, delta)
 
 func release_inputs() -> void:
 	forward = false

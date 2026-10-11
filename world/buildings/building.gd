@@ -3,6 +3,7 @@ class_name Building extends StaticBody3D
 signal removed(building: Building)
 
 const UNIT_REACH_BOUND := 3.0 # More than any unit's reach.
+const AREA_BOUND := 16.0 # More than any building's area reaches from its position.
 
 @export var title: String
 @export var resource: StrategicResource # eventually update to have more than one type of resource
@@ -58,6 +59,10 @@ func _ready() -> void:
 func unit_interaction(_unit: Unit) -> void:
 	pass
 
+# What `unit` interacting here would do, for the third-person prompt; empty if nothing.
+func interaction_name(_unit: Unit) -> String:
+	return "" if construction_complete else "Build"
+
 func remove() -> void:
 	removed.emit(self)
 	for unit in pending_workers:
@@ -104,6 +109,12 @@ func units_in_reach() -> bool:
 	for unit: Unit in _found:
 		if _touches(inverse * unit.global_position, half, unit.reach): return true
 	return false
+
+# How far `pos` is from this building's area on the ground plane; 0 inside it.
+func area_distance(pos: Vector3) -> float:
+	if not _cache_reach(): return INF
+	var local := _reach_inverse * pos
+	return Vector2(maxf(absf(local.x) - _reach_half.x, 0.0), maxf(absf(local.z) - _reach_half.y, 0.0)).length()
 
 static func _touches(local: Vector3, half: Vector2, radius: float) -> bool:
 	var dx := maxf(absf(local.x) - half.x, 0.0)
