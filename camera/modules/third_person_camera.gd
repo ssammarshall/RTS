@@ -3,7 +3,9 @@ class_name ThirdPersonCamera extends CameraModule
 # the terrain and buildings, and the camera's h_offset puts the unit off to one side. Flying in blends the RTS camera
 # (arm 0) into that; flying out blends back to the RTS height and pitch it came from, centred on the unit.
 
-const FLY_TIME := 0.8
+const MIN_FLY_TIME := 0.6
+const MAX_FLY_TIME := 1.0
+const FAR_FLIGHT := 100.0
 const PITCH := -0.3
 const MIN_PITCH := -1.3
 const MAX_PITCH := 0.4
@@ -15,13 +17,13 @@ const ZOOM_STEP := 1.0
 const ZOOM_RATE := 10.0
 const LOOK := 0.0025
 const MIN_RTS_HEIGHT := 10.0
-const WIND_DISTANCE := 40.0
-const WIND_SPEED := 120.0
+const WIND_VOLUME := -8.0
 
 enum Flight { NONE, IN, OUT }
 
 var distance := 5.0
 var flight := Flight.NONE
+var fly_time := 0.0
 var _t := 0.0
 var _from_position := Vector3.ZERO
 var _from_pitch := 0.0
@@ -31,13 +33,11 @@ var _rts_height := 0.0
 var _rts_pitch := 0.0
 var _spot := Vector3.ZERO
 var _rise := 0.0
-var _last_eye := Vector3.ZERO
 
 func fly_in(camera_rig: CameraRig) -> void:
 	_rts_height = camera_rig.user.global_position.y
 	_rts_pitch = camera_rig.rotation.x
 	_start(camera_rig, Flight.IN)
-	if camera_rig.wind.stream and _last_eye.distance_to(_spot) > WIND_DISTANCE: camera_rig.wind.play()
 
 func fly_out(camera_rig: CameraRig) -> void:
 	if flight != Flight.OUT: _start(camera_rig, Flight.OUT)
@@ -61,15 +61,12 @@ func physics_update(camera_rig: CameraRig, delta: float) -> void:
 		return
 	_t += delta
 	var into := flight == Flight.IN
-	var blend := smoothstep(0.0, FLY_TIME, _t)
+	var blend := smoothstep(0.0, fly_time, _t)
 	camera_rig.user.global_position = _from_position.lerp(pivot if into else _rts_spot(camera_rig), blend)
 	camera_rig.rotation.x = lerpf(_from_pitch, PITCH if into else _rts_pitch, blend)
 	arm.spring_length = lerpf(_from_arm, distance if into else 0.0, blend)
 	camera_rig.camera.h_offset = lerpf(_from_shoulder, SHOULDER if into else 0.0, blend)
-	var eye := camera_rig.camera.global_position
-	if camera_rig.wind.playing: camera_rig.wind.volume_db = linear_to_db(clampf(eye.distance_to(_last_eye) / delta / WIND_SPEED, 0.01, 1.0))
-	_last_eye = eye
-	if _t < FLY_TIME: return
+	if _t < fly_time: return
 	flight = Flight.NONE
 	camera_rig.wind.stop()
 	if not into: camera_rig.land()
@@ -81,8 +78,14 @@ func _start(camera_rig: CameraRig, kind: Flight) -> void:
 	_from_pitch = camera_rig.rotation.x
 	_from_arm = camera_rig.spring_arm.spring_length
 	_from_shoulder = camera_rig.camera.h_offset
-	_last_eye = camera_rig.camera.global_position
 	_track(camera_rig)
+	var to := _spot + Vector3.UP * _rise if kind == Flight.IN else _rts_spot(camera_rig)
+	fly_time = lerpf(MIN_FLY_TIME, MAX_FLY_TIME, clampf(_from_position.distance_to(to) / FAR_FLIGHT, 0.0, 1.0))
+	var wind := camera_rig.wind
+	if not wind.stream: return
+	wind.pitch_scale = wind.stream.get_length() / fly_time
+	wind.volume_db = WIND_VOLUME
+	wind.play()
 
 # Where the unit is, or was when it left.
 func _track(camera_rig: CameraRig) -> void:
