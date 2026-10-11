@@ -9,24 +9,12 @@ enum MODE {
 	RTS,
 	UNIT_CONTROL
 }
-var current_mode: MODE = MODE.RTS:
-	set(new_mode):
-		match current_mode:
-			MODE.RTS:
-				pass
-			MODE.UNIT_CONTROL:
-				pass
-		
-		current_mode = new_mode
-		match current_mode:
-			MODE.RTS:
-				camera_rig.set_mode(CameraRig.MODE.RTS)
-			MODE.UNIT_CONTROL:
-				camera_rig.set_mode(CameraRig.MODE.UNIT_CONTROL)
+var current_mode: MODE = MODE.RTS
 
 # Modules.
 var rect := Rect2() # Used by multiple modules.
 var rts_controller: RTSController # Input.
+var third_person_controller: ThirdPersonController
 
 # Unit and Group variables.
 signal clear_all_selected
@@ -52,7 +40,9 @@ func _ready() -> void:
 	dragbox.visible = false
 	
 	rts_controller = RTSController.new(self)
-	
+	third_person_controller = ThirdPersonController.new(self)
+	camera_rig.landed.connect(_on_landed)
+
 	# Initialize control groups.
 	# 
 	# Control_group[0] is a temporary Group for currently selected Units.
@@ -72,17 +62,37 @@ func _unhandled_input(event: InputEvent) -> void:
 	match current_mode:
 		MODE.RTS:
 			rts_controller.handle_input(event)
+		MODE.UNIT_CONTROL:
+			third_person_controller.handle_input(event)
 
 func _process(delta: float) -> void:
 	match current_mode:
 		MODE.RTS:
 			rts_controller.update(delta)
+		MODE.UNIT_CONTROL:
+			third_person_controller.update(delta)
 
 func _physics_process(_delta: float) -> void:
 	pass
 
 func set_mode(mode: MODE) -> void:
 	current_mode = mode
+
+func take_over(unit: Unit) -> void:
+	if current_mode == MODE.UNIT_CONTROL or not owns(unit): return
+	rts_controller.release_inputs()
+	gui.hide()
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	camera_rig.take_over(unit)
+	current_mode = MODE.UNIT_CONTROL
+
+func leave_unit() -> void:
+	camera_rig.leave()
+
+func _on_landed() -> void:
+	current_mode = MODE.RTS
+	gui.show()
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
 func owns(unit: Unit) -> bool:
 	return faction == null or unit.faction == faction

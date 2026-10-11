@@ -1,9 +1,11 @@
 [gd_scene format=3 uid="uid://o6p7gvbb785"]
 
 [ext_resource type="Script" uid="uid://cofxoixoeylos" path="res://camera/camera_rig.gd" id="1_xqc3g"]
+[ext_resource type="AudioStream" uid="uid://do5i5exrxbidt" path="res://camera/wind_placeholder.wav" id="2_wind"]
 
 [node name="CameraRig" type="Node3D"]
 script = ExtResource("1_xqc3g")
+wind_sound = ExtResource("2_wind")
 
 [node name="SpringArm3D" type="SpringArm3D" parent="."]
 spring_length = 0.0

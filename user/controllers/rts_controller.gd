@@ -53,6 +53,21 @@ func _init(u: User) -> void:
 func _on_unit_focus(unit: Unit) -> void:
 	camera_rig.follow(unit)
 
+# Keys and buttons released while another controller has the input would otherwise stay held.
+func release_inputs() -> void:
+	current_mode = MODE.DEFAULT
+	camera_rig.forward = false
+	camera_rig.backward = false
+	camera_rig.left = false
+	camera_rig.right = false
+	rts_camera.camera_rotate_keypad = false
+	rts_camera.camera_rotation_direction = 0
+	rts_camera.camera_rotate_mouse = false
+	rts_camera.camera_zoom_direction = 0.0
+	user.shift = false
+	user.ctrl = false
+	user.hold_group = false
+
 func handle_input(event: InputEvent) -> void:
 	if event is InputEventKey:
 		input_event_key(event)
@@ -155,6 +170,10 @@ func input_event_key(event: InputEventKey) -> void:
 	if event.is_action_pressed("Space"):
 		if camera_rig.current_mode == CameraRig.MODE.UNIT_FOLLOW: camera_rig.stop_following()
 		elif user.get_selected_group().size() > 0: camera_rig.follow(user.get_selected_group().units[0])
+		return
+
+	if event.is_action_pressed("V"):
+		if user.get_selected_group().size() > 0: user.take_over(user.get_selected_group().units[0])
 		return
 	
 	if event.is_action_pressed("Number"):
