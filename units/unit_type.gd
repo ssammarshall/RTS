@@ -15,7 +15,7 @@ enum Action { SELF_ASSIGN = 1, FIGHT = 2, GIVE_ORDERS = 4, ABILITIES = 8 } # Mov
 @export var height := 2.0
 @export var reach := 1.5 # How close the unit has to be to a building's area to interact with it.
 @export var carry_limit := 10
-@export var run_speed := 8.0 # For the third-person controller.
+@export var run_speed := 14.0 # For the third-person controller.
 @export var crouch_speed := 3.0 # For the third-person controller.
 
 @export_group("Control")

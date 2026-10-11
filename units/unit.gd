@@ -10,6 +10,8 @@ const PUSH_DEAD_ZONE := 0.1 # A standing unit ignores a smaller push, so a settl
 const GROUND_MARGIN := 0.15 # A Full unit this close above the heightmap is on the ground.
 const STOPPED_SPEED := 0.1 # A standing Full unit slower than this puts its body to sleep.
 const ACCELERATION := 400.0 # And braking, of a Full unit's body: full speed in 25 ms, so it keeps pace with units without a body.
+const DRIVEN_GROUND_MARGIN := 0.3
+const MAX_SLOPE := PI / 4.0
 
 enum Detail { FULL, REDUCED, DORMANT }
 
@@ -58,8 +60,12 @@ var inventory: Inventory = Inventory.new()
 
 var push := Vector2.ZERO # Away from the unit's neighbours, from Units.
 var velocity := Vector3.ZERO
+var driven := false
+var drive := Vector3.ZERO
 
 static var _controller := UnitController.new()
+static var _driver := UnitController.new()
+static var _ground_query: PhysicsRayQueryParameters3D
 
 var _applied_type: UnitType
 var _yaw := 0.0
@@ -126,8 +132,50 @@ func _fit_ring() -> void:
 
 # Called every tick by Units while the unit isn't Dormant.
 func act(delta: float, heightmap: Heightmap) -> void:
-	if body: _act_full(delta, heightmap)
+	if driven and body: _act_driven(delta)
+	elif body: _act_full(delta, heightmap)
 	else: _act_reduced(delta, heightmap)
+
+# Toward `drive` at the player's softer acceleration, facing where it walks. Grounded by a ray, so it can stand on
+# buildings; it won't walk up a slope steeper than MAX_SLOPE.
+func _act_driven(delta: float) -> void:
+	var asleep := body.sleeping
+	if not asleep:
+		var xform := body.global_transform
+		global_transform = xform
+		_yaw = atan2(xform.basis.z.x, xform.basis.z.z)
+	if drive == Vector3.ZERO and asleep:
+		velocity = Vector3.ZERO
+		return
+	var ground := _ground_hit()
+	var current := body.linear_velocity
+	if drive == Vector3.ZERO and not ground.is_empty() and current.x * current.x + current.z * current.z < STOPPED_SPEED * STOPPED_SPEED:
+		body.sleeping = true
+		velocity = Vector3.ZERO
+		return
+	if asleep: body.sleeping = false
+	var target := drive
+	if not ground.is_empty():
+		var normal: Vector3 = ground.normal
+		var downhill := Vector3(normal.x, 0.0, normal.z).normalized()
+		var uphill := target.dot(downhill)
+		if normal.y < cos(MAX_SLOPE) and uphill < 0.0: target -= downhill * uphill
+	_driver.max_speed = INF
+	_driver.turn_speed = turn_speed
+	_driver.desired_velocity = target
+	_driver.desired_yaw = atan2(-drive.x, -drive.z) if drive != Vector3.ZERO else _yaw
+	velocity = _driver.next_velocity(current, not ground.is_empty(), delta)
+	body.linear_velocity = velocity
+	body.angular_velocity = Vector3(0.0, _driver.yaw_rate(_yaw), 0.0)
+
+func _ground_hit() -> Dictionary:
+	if not _ground_query:
+		_ground_query = PhysicsRayQueryParameters3D.new()
+		_ground_query.collision_mask = 1 << (Global.COLLISION_LAYER.WORLD - 1)
+	var pos := global_position
+	_ground_query.from = pos
+	_ground_query.to = pos + Vector3.DOWN * (height * 0.5 + DRIVEN_GROUND_MARGIN)
+	return body.get_world_3d().direct_space_state.intersect_ray(_ground_query)
 
 # The unit follows its body, and drives the body toward the steered velocity. A standing unit's body sleeps.
 func _act_full(delta: float, heightmap: Heightmap) -> void:
@@ -284,6 +332,8 @@ func reset() -> void:
 	inventory = Inventory.new()
 	velocity = Vector3.ZERO
 	push = Vector2.ZERO
+	driven = false
+	drive = Vector3.ZERO
 	_yaw = 0.0
 	identity = null
 	pinned_detail = Detail.DORMANT
