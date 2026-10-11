@@ -5,6 +5,7 @@ var group_number: int
 
 # Units.
 var units: Array[Unit]
+var _index := {}
 
 enum FORMATION {
 	BOX,
@@ -18,21 +19,24 @@ func _init(index: int) -> void:
 
 # Add Unit.
 func add_unit(unit: Unit) -> void:
-	if units.has(unit):return
-	units.append(unit) # Add to Group.
+	if _index.has(unit): return
+	_index[unit] = units.size()
+	units.append(unit)
 
 # Append array of Units.
 func add_units(array: Array[Unit]) -> void:
 	for unit in array:
 		add_unit(unit)
 
-# Remove Unit.
+# Remove Unit. The last unit takes its place.
 func remove_unit(unit: Unit) -> void:
-	var index:int = -1
-	for x in size():
-		if units[x] == unit:index = x
-	if index == -1: return
-	units.remove_at(index)
+	var index: int = _index.get(unit, -1)
+	if index < 0: return
+	var last: Unit = units[units.size() - 1]
+	units[index] = last
+	_index[last] = index
+	units.pop_back()
+	_index.erase(unit)
 
 func get_unit_positions() -> Array[Vector3]:
 	var array: Array[Vector3]
@@ -44,13 +48,13 @@ func get_unit_positions() -> Array[Vector3]:
 func empty_group() -> void:
 	select(false)
 	units.clear()
+	_index.clear()
 
 func size() -> int:
 	return units.size()
 
 func has(unit: Unit) -> bool:
-	if units.has(unit): return true
-	else: return false
+	return _index.has(unit)
 
 # Select all Units in Group
 func select(value: bool) -> void:
