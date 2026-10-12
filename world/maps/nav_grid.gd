@@ -187,7 +187,7 @@ func _bake_tile(index: int) -> void:
 	_baking[index] = bake
 	var mesh := NAV_MESH_TEMPLATE.duplicate() as NavigationMesh
 	mesh.filter_baking_aabb = _tiles[index].navigation_mesh.filter_baking_aabb
-	NavigationServer3D.bake_from_source_geometry_data_async(mesh, _base_source, func() -> void: _on_tile_baked(index, bake, mesh))
+	NavigationServer3D.bake_from_source_geometry_data_async(mesh, _base_source, _on_tile_baked.bind(index, bake, mesh))
 
 func _on_tile_baked(index: int, bake: int, mesh: NavigationMesh) -> void:
 	if _baking.get(index, -1) != bake: return
