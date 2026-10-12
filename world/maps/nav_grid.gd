@@ -2,6 +2,7 @@ class_name NavGrid extends Node3D
 # Tiled navigation component.
 
 const NAV_MESH_TEMPLATE: NavigationMesh = preload("res://world/maps/nav_tile_template.tres")
+const JOIN_QUIET := 0.5
 
 @export var tile_size: float = 48.0
 @export var carve_height_margin: float = 2.0
@@ -21,13 +22,15 @@ var _bakes := 0
 var _obstructions := {}
 var _dirty := {}
 var _flush_queued := false
+var _nav_map: RID
+var _joining := false
 
 # Parse terrain_root's static geometry and build/bake the tile grid.
 # Call once at startup.
 func build(terrain_root: Node3D) -> void:
-	var nav_map: RID = get_world_3d().navigation_map
-	NavigationServer3D.map_set_use_edge_connections(nav_map, true)
-	NavigationServer3D.map_set_edge_connection_margin(nav_map, edge_connection_margin)
+	_nav_map = get_world_3d().navigation_map
+	NavigationServer3D.map_set_use_edge_connections(_nav_map, true)
+	NavigationServer3D.map_set_edge_connection_margin(_nav_map, edge_connection_margin)
 
 	_parse_terrain(terrain_root)
 	_read_footprints()
@@ -35,6 +38,8 @@ func build(terrain_root: Node3D) -> void:
 	_compute_bounds()
 	_build_tiles()
 	bake_all()
+	_joining = not _tiles.is_empty()
+	NavigationServer3D.map_changed.connect(_on_map_changed)
 
 # Applied at the end of the frame, so many changes at once re-bake each tile once.
 func add_obstruction(building: Building) -> void:
@@ -173,6 +178,16 @@ func _on_tile_baked(index: int, bake: int, mesh: NavigationMesh) -> void:
 	if _baking.get(index, -1) != bake: return
 	_baking.erase(index)
 	if is_inside_tree(): _tiles[index].navigation_mesh = mesh
+
+func _on_map_changed(map: RID) -> void:
+	if not _joining or map != _nav_map or is_baking() or not is_inside_tree(): return
+	get_tree().create_timer(JOIN_QUIET).timeout.connect(_join.bind(NavigationServer3D.map_get_iteration_id(map)))
+
+# Re-applying a tile's mesh starts a build.
+func _join(iteration: int) -> void:
+	if not _joining or NavigationServer3D.map_get_iteration_id(_nav_map) != iteration: return
+	_joining = false
+	NavigationServer3D.region_set_navigation_mesh(_rids[0], _tiles[0].navigation_mesh)
 
 # A Building's solid collision shape as a projected obstruction: [outline, elevation, height], or empty on failure. It
 # isn't a carve, so the bake widens it by the agent radius and paths keep a unit's width from the walls.
