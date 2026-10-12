@@ -6,11 +6,13 @@ const NAV_MESH_TEMPLATE: NavigationMesh = preload("res://world/maps/nav_tile_tem
 @export var tile_size: float = 48.0
 @export var carve_height_margin: float = 2.0
 @export var edge_connection_margin: float = 1.5
+@export var query_pad: float = 48.0
 
 var _base_source := NavigationMeshSourceGeometryData3D.new()
 var _terrain_vertices := PackedFloat32Array()
 var _terrain_indices := PackedInt32Array()
 var _tiles: Array[NavigationRegion3D] = []
+var _rids: Array[RID] = []
 var _grid_cols: int = 0
 var _grid_rows: int = 0
 var _map_aabb: AABB
@@ -54,6 +56,27 @@ func bake_all() -> void:
 
 func is_baking() -> bool:
 	return not _baking.is_empty()
+
+# The tiles a path from `from` to `to` searches: the box around the two, grown by query_pad.
+func regions_between(from: Vector3, to: Vector3) -> Array[RID]:
+	var regions: Array[RID] = []
+	for i in _tiles_overlapping(AABB(from, Vector3.ZERO).expand(to).grow(query_pad)): regions.append(_rids[i])
+	return regions
+
+# The closest navmesh point on pos's tile and the tiles around it, without scanning the whole map.
+func closest_point(pos: Vector3) -> Vector3:
+	var col := clampi(floori((pos.x - _map_aabb.position.x) / tile_size), 0, _grid_cols - 1)
+	var row := clampi(floori((pos.z - _map_aabb.position.z) / tile_size), 0, _grid_rows - 1)
+	var closest := pos
+	var best := INF
+	for r in range(maxi(row - 1, 0), mini(row + 2, _grid_rows)):
+		for c in range(maxi(col - 1, 0), mini(col + 2, _grid_cols)):
+			var point := NavigationServer3D.region_get_closest_point(_rids[r * _grid_cols + c], pos)
+			var distance := point.distance_squared_to(pos)
+			if distance < best:
+				best = distance
+				closest = point
+	return closest
 
 # Walk the terrain once and cache its geometry; every tile bakes from this.
 func _parse_terrain(terrain_root: Node3D) -> void:
@@ -127,6 +150,7 @@ func _build_tiles() -> void:
 			region.navigation_mesh = mesh
 			add_child(region)
 			_tiles.append(region)
+			_rids.append(region.get_rid())
 
 func _tile_aabb(col: int, row: int) -> AABB:
 	var pos := Vector3(

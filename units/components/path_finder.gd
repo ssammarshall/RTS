@@ -219,7 +219,7 @@ func _query_path() -> void:
 	if not _needs_path or not _route.is_empty() or not is_active(): return # A shared route's leg gets its path from RouteCache.
 	var map := _nav_map()
 	queries += 1
-	var path := NavigationServer3D.map_get_path(map, unit.global_position, target, true)
+	var path := PathQuery.find(unit.global_position, target)
 	if path.is_empty(): return # Map not synced yet: keep walking straight, the next think asks again.
 	_path = path
 	_index = 0

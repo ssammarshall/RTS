@@ -36,7 +36,7 @@ static func _query(route_key: String, map: RID, from: Vector3, to: Vector3) -> v
 	var route := PackedVector3Array()
 	if finders.any(func(finder: PathFinder) -> bool: return finder.is_active()):
 		PathFinder.queries += 1
-		route = NavigationServer3D.map_get_path(map, from, to, true)
+		route = PathQuery.find(from, to)
 		_sync(map)
 		if not route.is_empty():
 			var routes: Array = _routes.get_or_add(route_key, [])
