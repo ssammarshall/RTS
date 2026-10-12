@@ -38,10 +38,12 @@ func _enter_tree() -> void:
 	if not map or not map.is_ancestor_of(self): return
 	_map = map
 	grid_handle = map.building_grid.insert(self, Vector2(global_position.x, global_position.z))
+	if get_collision_layer_value(Global.COLLISION_LAYER.WORLD): map.nav_grid.add_obstruction(self)
 
 func _exit_tree() -> void:
 	if grid_handle < 0: return
 	_map.building_grid.remove(grid_handle)
+	_map.nav_grid.remove_obstruction(self)
 	grid_handle = -1
 	_map = null
 
@@ -196,6 +198,7 @@ func start_construction() -> void:
 	display_building_preview(false) # Show Building.
 	set_building_collision_layer(Global.COLLISION_LAYER.WORLD, true) # Allow Building to interact with world.
 	construction_complete = true
+	if _map: _map.nav_grid.add_obstruction(self)
 	SignalBus.building_constructed.emit(self)
 
 	for unit in pending_workers:

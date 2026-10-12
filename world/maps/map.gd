@@ -1,7 +1,7 @@
 class_name Map extends Node3D
 
 ## Owns the building list and delegates navigation to its [NavGrid] component,
-## which carves placed buildings out of a tiled navigation mesh.
+## which keeps every building units collide with out of a tiled navigation mesh.
 ## Every [Building] under the map is in [member building_grid]; placement previews aren't under it.
 ## The terrain's [Heightmap] is baked on a worker thread when the map loads.
 
@@ -31,7 +31,6 @@ func _exit_tree() -> void:
 func _ready() -> void:
 	SignalBus.building_placed.connect(Callable(_on_building_placed))
 	SignalBus.building_remove_last.connect(Callable(_on_building_remove_last))
-	SignalBus.building_constructed.connect(Callable(_on_building_constructed))
 
 	nav_grid.build(terrain_root)
 	var faces := Heightmap.terrain_faces(terrain_root, 1 << (Global.COLLISION_LAYER.TERRAIN - 1))
@@ -64,10 +63,6 @@ func _on_building_remove_last() -> void:
 		if last_building.construction_complete: return # Cannot remove last on already constructed Building.
 		buildings.remove_at(size - 1)
 		last_building.remove()
-
-func _on_building_constructed(building: Building) -> void:
-	if not buildings.has(building): return
-	nav_grid.carve_building(building)
 
 func find_buildings(building_type: Variant, _resource: StrategicResource = null) -> Array[Building]:
 	var building_list: Array[Building]

@@ -8,12 +8,17 @@ const NAV_MESH_TEMPLATE: NavigationMesh = preload("res://world/maps/nav_tile_tem
 @export var edge_connection_margin: float = 1.5
 
 var _base_source := NavigationMeshSourceGeometryData3D.new()
+var _terrain_vertices := PackedFloat32Array()
+var _terrain_indices := PackedInt32Array()
 var _tiles: Array[NavigationRegion3D] = []
 var _grid_cols: int = 0
 var _grid_rows: int = 0
 var _map_aabb: AABB
 var _baking := {}
-var _rebake := {}
+var _bakes := 0
+var _obstructions := {}
+var _dirty := {}
+var _flush_queued := false
 
 # Parse terrain_root's static geometry and build/bake the tile grid.
 # Call once at startup.
@@ -23,38 +28,80 @@ func build(terrain_root: Node3D) -> void:
 	NavigationServer3D.map_set_edge_connection_margin(nav_map, edge_connection_margin)
 
 	_parse_terrain(terrain_root)
+	_read_footprints()
+	_rebuild_source()
 	_compute_bounds()
 	_build_tiles()
 	bake_all()
 
-# Carve a Building's footprint out of the navmesh and rebake the tiles it touches.
-func carve_building(building: Building) -> void:
-	if _tiles.is_empty(): return
-	var footprint := _add_obstruction(building)
-	if footprint.is_empty(): return
-	for i in _tiles_overlapping(_footprint_aabb(footprint)):
-		_bake_tile(i)
+# Applied at the end of the frame, so many changes at once re-bake each tile once.
+func add_obstruction(building: Building) -> void:
+	if _obstructions.has(building): return
+	_obstructions[building] = []
+	_queue_flush()
 
-# Rebuild every obstruction from the current constructed buildings and rebake all.
-func rebuild(buildings: Array[Building]) -> void:
-	_base_source.clear_projected_obstructions()
-	for b in buildings:
-		if b.construction_complete:
-			_add_obstruction(b)
-	bake_all()
+func remove_obstruction(building: Building) -> void:
+	if not _obstructions.has(building): return
+	var obstruction: Array = _obstructions[building]
+	_obstructions.erase(building)
+	if obstruction.is_empty(): return
+	_mark_dirty(obstruction)
+	_queue_flush()
 
 func bake_all() -> void:
 	for i in _tiles.size():
 		_bake_tile(i)
 
+func is_baking() -> bool:
+	return not _baking.is_empty()
+
 # Walk the terrain once and cache its geometry; every tile bakes from this.
 func _parse_terrain(terrain_root: Node3D) -> void:
-	_base_source.clear()
-	NavigationServer3D.parse_source_geometry_data(NAV_MESH_TEMPLATE, _base_source, terrain_root)
+	var source := NavigationMeshSourceGeometryData3D.new()
+	NavigationServer3D.parse_source_geometry_data(NAV_MESH_TEMPLATE, source, terrain_root)
+	_terrain_vertices = source.get_vertices()
+	_terrain_indices = source.get_indices()
+
+# A new source each time: a tile still baking on a worker thread keeps reading the one it started with.
+func _rebuild_source() -> void:
+	var source := NavigationMeshSourceGeometryData3D.new()
+	source.set_vertices(_terrain_vertices)
+	source.set_indices(_terrain_indices)
+	for obstruction: Array in _obstructions.values():
+		source.add_projected_obstruction(obstruction[0], obstruction[1], obstruction[2], false)
+	_base_source = source
+
+func _queue_flush() -> void:
+	if _tiles.is_empty() or _flush_queued: return
+	_flush_queued = true
+	_flush.call_deferred()
+
+func _flush() -> void:
+	_flush_queued = false
+	if not is_inside_tree(): return
+	for obstruction: Array in _read_footprints(): _mark_dirty(obstruction)
+	_rebuild_source()
+	for i in _dirty: _bake_tile(i)
+	_dirty.clear()
+
+# Read late: a building's collision shape isn't in the tree yet when the building enters it.
+func _read_footprints() -> Array[Array]:
+	var read: Array[Array] = []
+	for building: Building in _obstructions.keys():
+		if not _obstructions[building].is_empty(): continue
+		var obstruction := _obstruction(building)
+		if obstruction.is_empty(): _obstructions.erase(building)
+		else:
+			_obstructions[building] = obstruction
+			read.append(obstruction)
+	return read
+
+func _mark_dirty(obstruction: Array) -> void:
+	for i in _tiles_overlapping(_footprint_aabb(obstruction[0])): _dirty[i] = true
 
 # Derive the grid extents from the parsed geometry so tiles cover exactly the map.
 func _compute_bounds() -> void:
-	var verts: PackedFloat32Array = _base_source.get_vertices()
+	var verts: PackedFloat32Array = _terrain_vertices
 	if verts.is_empty():
 		push_warning("NavGrid: no source geometry parsed; tiles not built.")
 		return
@@ -88,35 +135,29 @@ func _tile_aabb(col: int, row: int) -> AABB:
 		_map_aabb.position.z + row * tile_size)
 	return AABB(pos, Vector3(tile_size, _map_aabb.size.y, tile_size))
 
-# Bake a single tile off-thread from the cached source geometry (+ obstructions),
-# then hand the finished mesh to the NavigationServer for that region.
+# Each bake writes a mesh of its own, and only a tile's latest bake is applied: re-baking the mesh a region already
+# had, while the map was still merging it, lost the newer bake.
 func _bake_tile(index: int) -> void:
-	if _baking.has(index): # Queue one re-bake so the obstruction added meanwhile is carved out.
-		_rebake[index] = true
-		return
+	_bakes += 1
+	var bake := _bakes
+	_baking[index] = bake
+	var mesh := NAV_MESH_TEMPLATE.duplicate() as NavigationMesh
+	mesh.filter_baking_aabb = _tiles[index].navigation_mesh.filter_baking_aabb
+	NavigationServer3D.bake_from_source_geometry_data_async(mesh, _base_source, func() -> void: _on_tile_baked(index, bake, mesh))
 
-	_baking[index] = true
-	var region := _tiles[index]
-	var mesh: NavigationMesh = region.navigation_mesh
-	NavigationServer3D.bake_from_source_geometry_data_async(
-		mesh, _base_source,
-		func() -> void: _on_tile_baked(index, region, mesh))
-
-func _on_tile_baked(index: int, region: NavigationRegion3D, mesh: NavigationMesh) -> void:
+func _on_tile_baked(index: int, bake: int, mesh: NavigationMesh) -> void:
+	if _baking.get(index, -1) != bake: return
 	_baking.erase(index)
-	if not is_instance_valid(region): return
-	NavigationServer3D.region_set_navigation_mesh(region.get_rid(), mesh)
-	if _rebake.erase(index): _bake_tile(index)
+	if is_inside_tree(): _tiles[index].navigation_mesh = mesh
 
-# Add a Building's solid collision shape to the shared source geometry as an obstruction. It isn't a carve, so the bake
-# widens it by the agent radius and paths keep a unit's width from the walls.
-# Returns the world-space footprint outline, or empty on failure.
-func _add_obstruction(building: Building) -> PackedVector3Array:
+# A Building's solid collision shape as a projected obstruction: [outline, elevation, height], or empty on failure. It
+# isn't a carve, so the bake widens it by the agent radius and paths keep a unit's width from the walls.
+func _obstruction(building: Building) -> Array:
 	var points := _collision_world_points(building)
-	if points.size() < 3: return PackedVector3Array()
+	if points.size() < 3: return []
 
 	var footprint := _footprint_hull(points)
-	if footprint.size() < 3: return PackedVector3Array()
+	if footprint.size() < 3: return []
 
 	var min_y := INF
 	var max_y := -INF
@@ -124,10 +165,7 @@ func _add_obstruction(building: Building) -> PackedVector3Array:
 		min_y = minf(min_y, p.y)
 		max_y = maxf(max_y, p.y)
 
-	var elevation := min_y - carve_height_margin
-	var height := (max_y - min_y) + carve_height_margin * 2.0
-	_base_source.add_projected_obstruction(footprint, elevation, height, false)
-	return footprint
+	return [footprint, min_y - carve_height_margin, (max_y - min_y) + carve_height_margin * 2.0]
 
 # World-space vertices of a Building's collision shape.
 func _collision_world_points(building: Building) -> PackedVector3Array:
