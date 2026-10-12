@@ -28,19 +28,18 @@ static func request(route_key: String, map: RID, from: Vector3, to: Vector3, fin
 		_waiting[route_key].append(finder)
 		return
 	_waiting[route_key] = [finder]
-	Scheduler.defer(_query.bind(route_key, map, from, to))
+	PathFinder.queries += 1
+	PathQuery.request(from, to, _take.bind(route_key, map))
 
-static func _query(route_key: String, map: RID, from: Vector3, to: Vector3) -> void:
+# A route queried on an older map isn't kept, and its units query their own paths.
+static func _take(query: PathQuery, route_key: String, map: RID) -> void:
 	var finders: Array = _waiting[route_key]
 	_waiting.erase(route_key)
-	var route := PackedVector3Array()
-	if finders.any(func(finder: PathFinder) -> bool: return finder.is_active()):
-		PathFinder.queries += 1
-		route = PathQuery.find(from, to)
-		_sync(map)
-		if not route.is_empty():
-			var routes: Array = _routes.get_or_add(route_key, [])
-			if routes.size() < MAX_ROUTES: routes.append(route)
+	_sync(map)
+	var route := query.path if query.iteration == _map_iteration else PackedVector3Array()
+	if not route.is_empty():
+		var routes: Array = _routes.get_or_add(route_key, [])
+		if routes.size() < MAX_ROUTES: routes.append(route)
 	for finder: PathFinder in finders: finder.take_route(route_key, route)
 
 static func _sync(map: RID) -> void:

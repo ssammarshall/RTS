@@ -20,7 +20,7 @@ var _path := PackedVector3Array()
 var _index := 0
 var _queue: Array[Vector3] = []
 var _needs_path := false
-var _query_pending := false
+var _query: PathQuery
 var _route := "" # RouteCache key of this leg, empty for one-off legs.
 var _reach: Building # The leg's target: the leg ends where the unit's reach first touches it.
 var _waiting_for := "" # RouteCache key this finder waits on.
@@ -46,6 +46,7 @@ func end_pathing() -> void:
 	_index = 0
 	_arrival_index = -1
 	_needs_path = false
+	_query = null
 	_route = ""
 	_reach = null
 	desired_velocity = Vector3.ZERO
@@ -166,6 +167,7 @@ func _start_leg(pos: Vector3, route := "", reach: Building = null) -> void:
 	_path = PackedVector3Array([pos])
 	_index = 0
 	_arrival_index = -1
+	_query = null
 	_route = route
 	_reach = reach
 	_jump_tick = Scheduler.tick
@@ -180,9 +182,9 @@ func _request_path(leg_start := false) -> void:
 		if _waiting_for == _route: return
 		if _use_route(leg_start): return
 		_route = ""
-	if _query_pending: return
-	_query_pending = true
-	Scheduler.defer(_query_path)
+	if _query: return
+	queries += 1
+	_query = PathQuery.request(unit.global_position, target, _take_path)
 
 # Joins a shared route near the unit, or waits for one being queried. Only a unit at the start of its leg may start a query.
 func _use_route(leg_start: bool) -> bool:
@@ -214,18 +216,17 @@ func _join(route: PackedVector3Array) -> bool:
 	_map_iteration = NavigationServer3D.map_get_iteration_id(_map)
 	return true
 
-func _query_path() -> void:
-	_query_pending = false
+# A query from an earlier leg was dropped when this one started. One that ran on an older map makes the next think re-path.
+func _take_path(query: PathQuery) -> void:
+	if query != _query: return
+	_query = null
 	if not _needs_path or not _route.is_empty() or not is_active(): return # A shared route's leg gets its path from RouteCache.
-	var map := _nav_map()
-	queries += 1
-	var path := PathQuery.find(unit.global_position, target)
-	if path.is_empty(): return # Map not synced yet: keep walking straight, the next think asks again.
-	_path = path
+	if query.path.is_empty(): return # Map not synced yet: keep walking straight, the next think asks again.
+	_path = query.path
 	_index = 0
 	_arrival_index = -1
 	_needs_path = false
-	_map_iteration = NavigationServer3D.map_get_iteration_id(map)
+	_map_iteration = query.iteration
 
 func _nav_map() -> RID:
 	if not _map.is_valid(): _map = unit.get_world_3d().navigation_map

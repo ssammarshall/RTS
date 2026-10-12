@@ -38,6 +38,9 @@ func _ready() -> void:
 		_slot_tasks.append([])
 		_slot_dues.append([])
 
+func _exit_tree() -> void:
+	PathQuery.finish()
+
 func add(callback: Callable, interval: float) -> ThinkTask:
 	var task := ThinkTask.new(callback, interval)
 	task._last = tick
@@ -105,6 +108,7 @@ func _physics_process(delta: float) -> void:
 
 	if _over_budget: overrun_ticks += 1
 	_run_deferred()
+	PathQuery.flush()
 	busy_usec += Time.get_ticks_usec() - start
 
 # The clock is read before every run but only every SKIP_CHECK_INTERVAL skipped entries.

@@ -9,6 +9,8 @@ const JOIN_QUIET := 0.5
 @export var edge_connection_margin: float = 1.5
 @export var query_pad: float = 48.0
 
+var nav_map: RID
+
 var _base_source := NavigationMeshSourceGeometryData3D.new()
 var _terrain_vertices := PackedFloat32Array()
 var _terrain_indices := PackedInt32Array()
@@ -22,15 +24,14 @@ var _bakes := 0
 var _obstructions := {}
 var _dirty := {}
 var _flush_queued := false
-var _nav_map: RID
 var _joining := false
 
 # Parse terrain_root's static geometry and build/bake the tile grid.
 # Call once at startup.
 func build(terrain_root: Node3D) -> void:
-	_nav_map = get_world_3d().navigation_map
-	NavigationServer3D.map_set_use_edge_connections(_nav_map, true)
-	NavigationServer3D.map_set_edge_connection_margin(_nav_map, edge_connection_margin)
+	nav_map = get_world_3d().navigation_map
+	NavigationServer3D.map_set_use_edge_connections(nav_map, true)
+	NavigationServer3D.map_set_edge_connection_margin(nav_map, edge_connection_margin)
 
 	_parse_terrain(terrain_root)
 	_read_footprints()
@@ -64,23 +65,37 @@ func is_baking() -> bool:
 
 # The tiles a path from `from` to `to` searches: the box around the two, grown by query_pad.
 func regions_between(from: Vector3, to: Vector3) -> Array[RID]:
+	return _regions_in(_tile_range(AABB(from, Vector3.ZERO).expand(to).grow(query_pad)))
+
+# pos's tile and the tiles around it.
+func regions_around(pos: Vector3) -> Array[RID]:
+	var col := clampi(floori((pos.x - _map_aabb.position.x) / tile_size), 0, _grid_cols - 1)
+	var row := clampi(floori((pos.z - _map_aabb.position.z) / tile_size), 0, _grid_rows - 1)
+	var c0 := maxi(col - 1, 0)
+	var r0 := maxi(row - 1, 0)
+	return _regions_in(Rect2i(c0, r0, mini(col + 2, _grid_cols) - c0, mini(row + 2, _grid_rows) - r0))
+
+# A row of tiles at a time: requests build these on the main thread.
+func _regions_in(tiles: Rect2i) -> Array[RID]:
 	var regions: Array[RID] = []
-	for i in _tiles_overlapping(AABB(from, Vector3.ZERO).expand(to).grow(query_pad)): regions.append(_rids[i])
+	for row in range(tiles.position.y, tiles.end.y):
+		regions.append_array(_rids.slice(row * _grid_cols + tiles.position.x, row * _grid_cols + tiles.end.x))
 	return regions
 
 # The closest navmesh point on pos's tile and the tiles around it, without scanning the whole map.
 func closest_point(pos: Vector3) -> Vector3:
-	var col := clampi(floori((pos.x - _map_aabb.position.x) / tile_size), 0, _grid_cols - 1)
-	var row := clampi(floori((pos.z - _map_aabb.position.z) / tile_size), 0, _grid_rows - 1)
+	return closest_on(regions_around(pos), pos)
+
+# Only calls the navigation server, so it can run on a worker thread.
+static func closest_on(regions: Array[RID], pos: Vector3) -> Vector3:
 	var closest := pos
 	var best := INF
-	for r in range(maxi(row - 1, 0), mini(row + 2, _grid_rows)):
-		for c in range(maxi(col - 1, 0), mini(col + 2, _grid_cols)):
-			var point := NavigationServer3D.region_get_closest_point(_rids[r * _grid_cols + c], pos)
-			var distance := point.distance_squared_to(pos)
-			if distance < best:
-				best = distance
-				closest = point
+	for region in regions:
+		var point := NavigationServer3D.region_get_closest_point(region, pos)
+		var distance := point.distance_squared_to(pos)
+		if distance < best:
+			best = distance
+			closest = point
 	return closest
 
 # Walk the terrain once and cache its geometry; every tile bakes from this.
@@ -180,12 +195,12 @@ func _on_tile_baked(index: int, bake: int, mesh: NavigationMesh) -> void:
 	if is_inside_tree(): _tiles[index].navigation_mesh = mesh
 
 func _on_map_changed(map: RID) -> void:
-	if not _joining or map != _nav_map or is_baking() or not is_inside_tree(): return
+	if not _joining or map != nav_map or is_baking() or not is_inside_tree(): return
 	get_tree().create_timer(JOIN_QUIET).timeout.connect(_join.bind(NavigationServer3D.map_get_iteration_id(map)))
 
 # Re-applying a tile's mesh starts a build.
 func _join(iteration: int) -> void:
-	if not _joining or NavigationServer3D.map_get_iteration_id(_nav_map) != iteration: return
+	if not _joining or NavigationServer3D.map_get_iteration_id(nav_map) != iteration: return
 	_joining = false
 	NavigationServer3D.region_set_navigation_mesh(_rids[0], _tiles[0].navigation_mesh)
 
@@ -256,14 +271,18 @@ func _footprint_aabb(footprint: PackedVector3Array) -> AABB:
 
 # Flat tile indices whose slice intersects the (agent-radius-padded) AABB.
 func _tiles_overlapping(aabb: AABB) -> Array[int]:
+	var tiles := _tile_range(aabb)
+	var result: Array[int] = []
+	for row in range(tiles.position.y, tiles.end.y):
+		for col in range(tiles.position.x, tiles.end.x):
+			result.append(row * _grid_cols + col)
+	return result
+
+# The columns and rows of the tiles whose slice intersects the (agent-radius-padded) AABB.
+func _tile_range(aabb: AABB) -> Rect2i:
 	var pad: float = NAV_MESH_TEMPLATE.agent_radius
 	var c0 := clampi(floori((aabb.position.x - pad - _map_aabb.position.x) / tile_size), 0, _grid_cols - 1)
 	var c1 := clampi(floori((aabb.position.x + aabb.size.x + pad - _map_aabb.position.x) / tile_size), 0, _grid_cols - 1)
 	var r0 := clampi(floori((aabb.position.z - pad - _map_aabb.position.z) / tile_size), 0, _grid_rows - 1)
 	var r1 := clampi(floori((aabb.position.z + aabb.size.z + pad - _map_aabb.position.z) / tile_size), 0, _grid_rows - 1)
-
-	var result: Array[int] = []
-	for row in range(r0, r1 + 1):
-		for col in range(c0, c1 + 1):
-			result.append(row * _grid_cols + col)
-	return result
+	return Rect2i(c0, r0, c1 - c0 + 1, r1 - r0 + 1)
