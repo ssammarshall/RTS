@@ -80,6 +80,8 @@ func set_target(user: User, target: Node3D) -> void:
 
 func set_target_building(user: User, target: Building) -> void:
 	if not user.hold_group:
+		if not target.construction_complete: # A built building replaces the job with its own.
+			for unit in user.get_selected_group().units: unit.set_job(null)
 		user.get_selected_group().cancel_commands()
 	
 	for i in user.get_selected_group().size():
