@@ -299,7 +299,6 @@ func input_event_mouse_button(event: InputEventMouseButton) -> void:
 	elif event.is_action_released("RMB"):
 		match current_mode:
 			MODE.ORDER:
-				if !user.shift: user.get_selected_group().clear_pathing()
 				current_mode = MODE.DEFAULT
 		return
 

@@ -31,8 +31,7 @@ func stop_order(user: User) -> void:
 	if !base or !unit_decals: return
 	for i in user.get_selected_group().size():
 		var unit: Unit = user.get_selected_group().units[i]
-		unit.take_control()
-		unit.set_command(MoveCommand.new(unit_decals[i].global_position))
+		_queue(unit, _move.bind(unit, unit_decals[i].global_position, user.shift), user.shift)
 	unit_decals.clear()
 	base.queue_free()
 
@@ -79,12 +78,26 @@ func set_target(user: User, target: Node3D) -> void:
 		unit.set_command(InteractCommand.new(target))
 
 func set_target_building(user: User, target: Building) -> void:
-	if not user.hold_group:
-		if not target.construction_complete: # A built building replaces the job with its own.
-			for unit in user.get_selected_group().units: unit.set_job(null)
-		user.get_selected_group().cancel_commands()
-	
-	for i in user.get_selected_group().size():
-		var unit: Unit = user.get_selected_group().units[i]
-		target.assign_worker(unit)
+	for unit in user.get_selected_group().units:
+		_queue(unit, _work.bind(unit, target, user.hold_group), user.hold_group)
+
+static func _queue(unit: Unit, order: Callable, shift: bool) -> void:
+	if not shift: unit.order_serial += 1
+	Scheduler.defer(_land.bind(unit, unit.order_serial, order))
+
+static func _land(unit, serial: int, order: Callable) -> void:
+	if is_instance_valid(unit) and unit.order_serial == serial: order.call()
+
+static func _move(unit: Unit, spot: Vector3, shift: bool) -> void:
+	if not shift: unit.path_finder.end_pathing()
+	unit.take_control()
+	unit.set_command(MoveCommand.new(spot))
+
+static func _work(unit: Unit, target, shift: bool) -> void:
+	if not is_instance_valid(target): return
+	if not shift:
+		if not target.construction_complete: unit.set_job(null) # A built building replaces the job with its own.
+		unit.path_finder.end_pathing()
+		unit.clear_commands()
+	target.assign_worker(unit)
 	

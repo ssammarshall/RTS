@@ -5,7 +5,7 @@ const SKIP_CHECK_INTERVAL := 64
 const QUEUE_COMPACT_AT := 1024
 
 var budget_usec := 2000
-var deferred_budget_usec := 1000
+var deferred_budget_usec := 2000
 
 var tick := 0
 

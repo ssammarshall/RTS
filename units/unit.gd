@@ -42,6 +42,7 @@ var group_num: int = -1
 # Allow Commands to be given to unit.
 var command: UnitCommand
 var command_queue: Array[UnitCommand]
+var order_serial := 0
 
 # Pathing used with PathFinder.
 var pathing: bool = false
@@ -328,6 +329,7 @@ func reset() -> void:
 	set_job(null)
 	clear_commands()
 	path_finder.end_pathing()
+	order_serial += 1
 	inventory.unequip(self)
 	inventory = Inventory.new()
 	velocity = Vector3.ZERO
