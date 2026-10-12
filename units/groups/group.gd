@@ -75,6 +75,7 @@ func add_path_pos(pos: Vector3) -> void:
 
 func cancel_commands() -> void:
 	for unit in units:
+		unit.path_finder.end_pathing()
 		unit.clear_commands()
 
 # End all pathing for each Unit's PathFinder.
