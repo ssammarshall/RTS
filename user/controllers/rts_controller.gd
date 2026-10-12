@@ -286,8 +286,7 @@ func input_event_mouse_button(event: InputEventMouseButton) -> void:
 					rts_order.set_target_building(user, collision as Building)
 					return
 				
-				var nav_map := user.get_world_3d().get_navigation_map()
-				user.mouse_global_position = NavigationServer3D.map_get_closest_point(nav_map, pos)
+				user.mouse_global_position = Map.current.nav_grid.closest_point(pos)
 				current_mode = MODE.ORDER
 			MODE.SELECT:
 				current_mode = MODE.DEFAULT
