@@ -76,9 +76,9 @@ func remove() -> void:
 func assign_worker(unit: Unit) -> void:
 	if construction_complete:
 		give_job(unit)
-	elif not pending_workers.has(unit):
-		pending_workers.append(unit)
-		unit.set_command(InteractCommand.new(self))
+		return
+	if not pending_workers.has(unit): pending_workers.append(unit)
+	unit.set_command(InteractCommand.new(self))
 
 func give_job(unit: Unit) -> void:
 	if job and unit.type.allows_job(job): unit.set_job(job.copy())
