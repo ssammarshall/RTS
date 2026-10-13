@@ -9,6 +9,7 @@ const ARRIVAL_NEAR := 3.0 # Within this of the arrival point a walking unit chec
 static var queries := 0
 static var legs := 0
 static var straight_legs := 0 # Legs that ended before their path query ran.
+static var repaths := 0 # After a re-bake.
 
 var unit: Unit
 var target := Vector3.ZERO
@@ -24,8 +25,8 @@ var _query: PathQuery
 var _route := "" # RouteCache key of this leg, empty for one-off legs.
 var _reach: Building # The leg's target: the leg ends where the unit's reach first touches it.
 var _waiting_for := "" # RouteCache key this finder waits on.
-var _map := RID()
-var _map_iteration := -1
+var _tiles := Rect2i()
+var _change := 0
 var _jump_tick := 0
 var _arrival_index := -1
 var _arrival_point := Vector3.ZERO
@@ -55,8 +56,17 @@ func end_pathing() -> void:
 
 func think() -> void:
 	if not unit.pathing: return
-	if _needs_path or (_map.is_valid() and NavigationServer3D.map_get_iteration_id(_map) != _map_iteration):
-		_request_path()
+	if _needs_path or _rebaked(): _request_path()
+
+# Whether the map has merged a re-bake of a tile under the path since it was found.
+func _rebaked() -> bool:
+	var grid := Map.current.nav_grid
+	if _change == grid.changes: return false
+	if grid.changed_since(_tiles, _change):
+		repaths += 1
+		return true
+	_change = grid.changes
+	return false
 
 # A leg with a target ends once the unit's reach touches it, on the way to _arrival_point.
 func steer() -> void:
@@ -154,7 +164,7 @@ func _arrive() -> void:
 func is_active() -> bool:
 	return is_instance_valid(unit) and unit.pathing and unit.is_inside_tree()
 
-func take_route(route_key: String, route: PackedVector3Array) -> void:
+func take_route(route_key: String, route: RouteCache.Route) -> void:
 	if _waiting_for == route_key: _waiting_for = ""
 	if not is_active() or not _needs_path or _route != route_key: return
 	if not _join(route): _request_path()
@@ -188,16 +198,18 @@ func _request_path(leg_start := false) -> void:
 
 # Joins a shared route near the unit, or waits for one being queried. Only a unit at the start of its leg may start a query.
 func _use_route(leg_start: bool) -> bool:
-	var map := _nav_map()
-	for route: PackedVector3Array in RouteCache.get_routes(_route, map):
+	for route: RouteCache.Route in RouteCache.get_routes(_route):
 		if _join(route): return true
 	if not RouteCache.is_querying(_route) and (not leg_start or RouteCache.is_full(_route)): return false
 	_waiting_for = _route
-	RouteCache.request(_route, map, unit.global_position, target, self)
+	RouteCache.request(_route, unit.global_position, target, self)
 	return true
 
-# Continues from the route's segment closest to the unit, if that is within JOIN_DISTANCE.
-func _join(route: PackedVector3Array) -> bool:
+# Continues from the route's segment closest to the unit, if that is within JOIN_DISTANCE. RouteCache's routes are up
+# to date with the map.
+func _join(shared: RouteCache.Route) -> bool:
+	if not shared: return false
+	var route := shared.path
 	var pos := Vector2(unit.global_position.x, unit.global_position.z)
 	var best := JOIN_DISTANCE * JOIN_DISTANCE
 	var index := -1
@@ -213,10 +225,12 @@ func _join(route: PackedVector3Array) -> bool:
 	_index = index
 	_arrival_index = -1
 	_needs_path = false
-	_map_iteration = NavigationServer3D.map_get_iteration_id(_map)
+	_tiles = shared.tiles
+	_change = Map.current.nav_grid.changes
 	return true
 
-# A query from an earlier leg was dropped when this one started. One that ran on an older map makes the next think re-path.
+# A query from an earlier leg was dropped when this one started. One requested before a re-bake under its path reached
+# the map makes the next think re-path.
 func _take_path(query: PathQuery) -> void:
 	if query != _query: return
 	_query = null
@@ -226,11 +240,8 @@ func _take_path(query: PathQuery) -> void:
 	_index = 0
 	_arrival_index = -1
 	_needs_path = false
-	_map_iteration = query.iteration
-
-func _nav_map() -> RID:
-	if not _map.is_valid(): _map = unit.get_world_3d().navigation_map
-	return _map
+	_tiles = Map.current.nav_grid.tiles_under(_path)
+	_change = query.change
 
 func _finish_leg() -> void:
 	if _queue.is_empty(): end_pathing()

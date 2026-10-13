@@ -13,7 +13,7 @@ static var _running: Array[PathQuery] = []
 static var _group := -1
 
 var path := PackedVector3Array()
-var iteration := 0
+var change := 0
 var fell_back := false
 
 var _on_done: Callable
@@ -67,7 +67,7 @@ func _init(from: Vector3, to: Vector3, on_done: Callable) -> void:
 	_params.metadata_flags = NavigationPathQueryParameters3D.PATH_METADATA_INCLUDE_NONE
 	_params.included_regions = grid.regions_between(from, to)
 	_around = grid.regions_around(to)
-	iteration = NavigationServer3D.map_get_iteration_id(_params.map)
+	change = grid.changes
 
 # Runs on a worker thread, so it touches only the navigation server and this query.
 func _run() -> void:

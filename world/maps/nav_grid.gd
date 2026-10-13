@@ -3,6 +3,9 @@ class_name NavGrid extends Node3D
 
 const NAV_MESH_TEMPLATE: NavigationMesh = preload("res://world/maps/nav_tile_template.tres")
 const JOIN_QUIET := 0.5
+const MERGES := 2
+const TILES_PER_CHANGE := 16
+const LOG_SIZE := 512
 
 @export var tile_size: float = 48.0
 @export var carve_height_margin: float = 2.0
@@ -10,6 +13,7 @@ const JOIN_QUIET := 0.5
 @export var query_pad: float = 48.0
 
 var nav_map: RID
+var changes := 0
 
 var _base_source := NavigationMeshSourceGeometryData3D.new()
 var _terrain_vertices := PackedFloat32Array()
@@ -25,6 +29,10 @@ var _obstructions := {}
 var _dirty := {}
 var _flush_queued := false
 var _joining := false
+var _merging := {}
+var _log_tiles: Array[Rect2i] = []
+var _log_changes := PackedInt32Array()
+var _forgotten := 0
 
 # Parse terrain_root's static geometry and build/bake the tile grid.
 # Call once at startup.
@@ -81,6 +89,20 @@ func _regions_in(tiles: Rect2i) -> Array[RID]:
 	for row in range(tiles.position.y, tiles.end.y):
 		regions.append_array(_rids.slice(row * _grid_cols + tiles.position.x, row * _grid_cols + tiles.end.x))
 	return regions
+
+func tiles_under(path: PackedVector3Array) -> Rect2i:
+	var aabb := AABB(path[0], Vector3.ZERO)
+	for point in path: aabb = aabb.expand(point)
+	return _tile_range(aabb)
+
+# Whether the map has merged a re-bake of any of `tiles` since change number `change`. One too old to remember counts.
+func changed_since(tiles: Rect2i, change: int) -> bool:
+	if change >= changes: return false
+	if change < _forgotten: return true
+	for i in range(_log_changes.size() - 1, -1, -1):
+		if _log_changes[i] <= change: return false
+		if _log_tiles[i].intersects(tiles): return true
+	return false
 
 # The closest navmesh point on pos's tile and the tiles around it, without scanning the whole map.
 func closest_point(pos: Vector3) -> Vector3:
@@ -192,17 +214,45 @@ func _bake_tile(index: int) -> void:
 func _on_tile_baked(index: int, bake: int, mesh: NavigationMesh) -> void:
 	if _baking.get(index, -1) != bake: return
 	_baking.erase(index)
-	if is_inside_tree(): _tiles[index].navigation_mesh = mesh
+	if not is_inside_tree(): return
+	_tiles[index].navigation_mesh = mesh
+	@warning_ignore("integer_division")
+	_merging[Rect2i(index % _grid_cols, index / _grid_cols, 1, 1)] = MERGES
 
 func _on_map_changed(map: RID) -> void:
-	if not _joining or map != nav_map or is_baking() or not is_inside_tree(): return
+	if map != nav_map: return
+	_count_change()
+	if not _joining or is_baking() or not is_inside_tree(): return
 	get_tree().create_timer(JOIN_QUIET).timeout.connect(_join.bind(NavigationServer3D.map_get_iteration_id(map)))
 
-# Re-applying a tile's mesh starts a build.
+# Re-applying a tile's mesh starts a build, which joins seams across the whole map.
 func _join(iteration: int) -> void:
 	if not _joining or NavigationServer3D.map_get_iteration_id(nav_map) != iteration: return
 	_joining = false
 	NavigationServer3D.region_set_navigation_mesh(_rids[0], _tiles[0].navigation_mesh)
+	_merging[Rect2i(0, 0, _grid_cols, _grid_rows)] = MERGES
+
+# A tile's new mesh counts as changed in the next MERGES map changes: one applied while the map was building only
+# reaches the build after. Many tiles at once (start-up) count as the box around them.
+func _count_change() -> void:
+	if _merging.is_empty(): return
+	changes += 1
+	var rects: Array = _merging.keys()
+	if rects.size() > TILES_PER_CHANGE:
+		var bounds: Rect2i = rects[0]
+		for rect: Rect2i in rects: bounds = bounds.merge(rect)
+		rects = [bounds]
+	for rect: Rect2i in rects:
+		_log_tiles.append(rect)
+		_log_changes.append(changes)
+	for rect: Rect2i in _merging.keys():
+		_merging[rect] -= 1
+		if _merging[rect] == 0: _merging.erase(rect)
+	if _log_tiles.size() <= LOG_SIZE: return
+	var half := _log_tiles.size() >> 1
+	_log_tiles = _log_tiles.slice(half)
+	_log_changes = _log_changes.slice(half)
+	_forgotten = _log_changes[0]
 
 # A Building's solid collision shape as a projected obstruction: [outline, elevation, height], or empty on failure. It
 # isn't a carve, so the bake widens it by the agent radius and paths keep a unit's width from the walls.
